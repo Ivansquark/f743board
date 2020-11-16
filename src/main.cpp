@@ -11,16 +11,22 @@ extern "C" void _exit(int i) {
 
 int main()
 {	
-	//RCC_INIT rcc(480);
+	RCC_INIT rcc(400);
 	
 	Encoder enc;
 	Buzzer buzz;
 	GP_Timers tim2(2,GP_Timers::Period::ms);
+	ParDac dac;
 	__enable_irq();
 	//__asm volatile ("cpsid i"); //turn off interrupts	
 	int devider_counter = 100;
 	while(1)
-	{	
+	{
+		dac.set_dac127(127);
+		dac.set_dac127(0);
+		//GPIOE->BSRR |= GPIO_BSRR_BS0;
+		//GPIOE->BSRR |= GPIO_BSRR_BR0;
+
 		//buzz.beep();
 		//for(int i=0;i<800000;i++){};
 		
@@ -33,6 +39,7 @@ int main()
 						tim2.TimSets=false;
 				}				
 			}
+			buzz.off();
 			enc.But_PC3 = 0;
 		}		
 	}

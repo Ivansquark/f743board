@@ -9,6 +9,7 @@ public:
     void beep() {
         GPIOB->ODR ^= GPIO_ODR_OD9;
     }
+    inline void off() {GPIOB->ODR &=~ GPIO_ODR_OD9;}
 private:
     void buzzer_init(){
         RCC->AHB4ENR|=RCC_AHB4ENR_GPIOBEN;

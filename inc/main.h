@@ -20,6 +20,7 @@
 #include "encoder.h"
 #include "buzzer.h"
 #include "timer.h"
+#include "pardac.h"
 //*******************************************************
 
 //class SYStick

@@ -38,9 +38,9 @@ $(BLD)main.bin: $(BLD)main.elf
 	$(OBJC) $(BLD)main.elf $(BLD)main.bin -O binary
 $(BLD)main.lst: $(BLD)main.elf
 	$(OBJD) -D $(BLD)main.elf > $(BLD)main.lst
-$(BLD)main.elf: $(BLD)startup.o $(BLD)main.o $(BLD)timer.o $(BLD)encoder.o#malloc.o tasks.o port.o queue.o list.o timers.o heap_2.o 
+$(BLD)main.elf: $(BLD)startup.o $(BLD)main.o $(BLD)timer.o $(BLD)encoder.o $(BLD)rcc_init.o $(BLD)pardac.o#malloc.o tasks.o port.o queue.o list.o timers.o heap_2.o 
 	$(CC) -o $(BLD)main.elf -T$(LIB)stm32h743.ld \
-	$(BLD)startup.o $(BLD)timer.o $(BLD)encoder.o $(BLD)main.o \
+	$(BLD)startup.o $(BLD)timer.o $(BLD)encoder.o $(BLD)main.o $(BLD)rcc_init.o $(BLD)pardac.o \
 	-I$(LIB) $(LCPPFLAGS) 
 # malloc.o tasks.o heap_2.o timers.o list.o port.o queue.o \
 	
@@ -66,8 +66,12 @@ $(BLD)startup.o: $(LIB)startup.cpp
 
 $(BLD)timer.o: $(SRC)timer.cpp #$(INC) #$(FRH)
 	$(CC) $(SRC)timer.cpp -o $(BLD)timer.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
+$(BLD)rcc_init.o: $(SRC)rcc_init.cpp #$(INC) #$(FRH)
+	$(CC) $(SRC)rcc_init.cpp -o $(BLD)rcc_init.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
 $(BLD)encoder.o: $(SRC)encoder.cpp #$(INC) #$(FRH)
-	$(CC) $(SRC)encoder.cpp -o $(BLD)encoder.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)	
+	$(CC) $(SRC)encoder.cpp -o $(BLD)encoder.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
+$(BLD)pardac.o: $(SRC)pardac.cpp #$(INC) #$(FRH)
+	$(CC) $(SRC)pardac.cpp -o $(BLD)pardac.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)	
 
 $(BLD)main.o: $(SRC)main.cpp #$(INC) #$(FRH)
 	$(CC) $(SRC)main.cpp -o $(BLD)main.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
