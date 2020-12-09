@@ -39,4 +39,29 @@ void Nor_LCD::lcd_init() {
     RCC->D1CCIPR &=~ RCC_D1CCIPR_FMCSEL;
     //! FMC clock enable
     RCC->AHB3ENR |= RCC_AHB3ENR_FMCEN;    
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_ASYNCWAIT; // Wait signal during asynchronous transfers
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_BURSTEN;   // Burst enable bit
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_CBURSTRW;  // write 0 - async 1 - sycnc
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_CPSIZE;    // CRAM Page Size
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_EXTMOD;    // 1: values inside FMC_BWTR register are taken into account 0: NO BWTR
+    FMC_Bank1_R->BTCR[0] |= FMC_BCRx_FACCEN;     // Flash access enable  (for LCD)
+    FMC_Bank1_R->BTCR[0] |= FMC_BCRx_MBKEN;      // Memory bank enable bit
+    FMC_Bank1_R->BTCR[0] |= FMC_BCRx_MTYP_1;     // 0 = SRAM 1 = CRAM 2 = NOR
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_MTYP_0;    // 0 = SRAM 1 = CRAM 2 = NOR
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_MUXEN;     // Multiplexing Address/Data
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_MWID;      // 00 = 8b 01 = 16b 10 = 32bits
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_WAITCFG;   //Wait timing configuration. 0: NWAIT before wait state 1: active during wait state
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_WAITEN;    // wait enable
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_WAITPOL;   // Wait signal polarity bit. 0: NWAIT active low. 1: NWAIT active high
+    FMC_Bank1_R->BTCR[0] |= FMC_BCRx_WREN;       // Write enable bit
+    FMC_Bank1_R->BTCR[0] &=~ FMC_BCR1_CCLKEN;    // Continious clock enable
+    FMC_Bank1_R->BTCR[0] |= FMC_BCR1_FMCEN;      // FMC enable
+
+    FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_ACCMOD;    // Access mode 0 = A, !!! 1=B !!!  , 2 = C, 3 = D Use w/EXTMOD bit
+    FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_ADDHLD;   // Address-hold phase duration 1..F * 2 * HCLK
+    FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_ADDSET;   // Address setup phase duration 0..F * HCLK
+    FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_BUSTURN;  // Bus turnaround phase duration 0...F
+    FMC_Bank1_R->BTCR[1] |= FMC_BTRx_CLKDIV_0;   // 0000: Reserved  0001:FMC_CLK period = 2 × fmc_ker_ck periods
+    FMC_Bank1_R->BTCR[1] |= FMC_BTRx_DATAST_0;    //Data-phase duration 0: Reserved  01: DATAST phase duration = 1 × fmc_ker_ck clock cycles
+    FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_DATLAT;    // Data latency for synchronous NOR Flash memory 0(2CK)...F(17CK)
 }
