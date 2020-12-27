@@ -1,161 +1,100 @@
-#include "fmc.h"
+#include "lcd_par.h"
+LCD_par* LCD_par::pThis = nullptr;
 
-void Nor_LCD_interface::writeData(uint16_t data) {
-    LCD->DATA = data>>8;    
-	LCD->DATA = data; 
-	//for(int i=0;i<1;i++) {
-	//	__ASM("nop");
-	//}
-}
-void Nor_LCD_interface::writeCmd(uint16_t cmd) {
-    LCD->CMD = cmd>>8;
-    LCD->CMD = cmd;   
-}
-void Nor_LCD_interface::writeReg(const uint16_t LCD_REG, const uint16_t reg_val) {
-    LCD->CMD = LCD_REG>>8;
-    LCD->CMD = LCD_REG;
-    LCD->DATA = reg_val>>8;
-    //LCD->DATA = 0x00;
-    LCD->DATA = reg_val;
-}
-
-void Nor_LCD_interface::setColumn(uint16_t x) {
-    writeReg(0x2A00, ((x >> 8) & 0x00FF)); //---start col |_| end col
-    writeReg(0x2A01, (x & 0x00FF)); //Column set start 0x0000 two by 8 bits
-}
-void Nor_LCD_interface::setRow(uint16_t y) {
-    writeReg(0x2B00, ((y >> 8) & 0x00FF)); //Row set start 0x0000 two by 8 bits
-    writeReg(0x2B01, ((y) & 0x00FF)); //---
-}
-void Nor_LCD_interface::setRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
-    writeReg(0x2A00, ((x1 >> 8))); //---start col |_| end col
-    writeReg(0x2A01, (x1 & 0x00FF)); //Column set start 0x0000 two by 8 bits
-    writeReg(0x2A02, ((x2 >> 8))); //---
-    writeReg(0x2A03, (x2 & 0x00FF)); //Column set end 0x0320 (800) two by 8 bits    
-    //GP_Timers::pThis[0]->delay_ms(1);
-    writeReg(0x2B00, ((y1 >> 8))); //---
-    writeReg(0x2B01, (y1 & 0x00FF)); //Row set start 0x0000 two by 8 bits
-    writeReg(0x2B02, ((y2 >> 8) )); //---
-    writeReg(0x2B03, (y2 & 0x00FF)); //Row set end 0x01E0 (480) two by 8 bits
-}
-
-Nor_LCD* Nor_LCD::pThis = nullptr;
-
-Nor_LCD::Nor_LCD() {    
-    fmc_lcd_init();
-    res_off();
+LCD_par::LCD_par() {
+    init();
     display_init();
     pThis = this;
 }
-void Nor_LCD::fmc_lcd_init() {
-    // GPIOS Enable: 
+
+void LCD_par::writeData(uint16_t data) {    
+    bit_setting(data>>8);
+    DATA();
+    GPIOD->BSRR |= (bits.bitMASK_D_set | (bits.bitMASK_D_reset << 16));
+    GPIOE->BSRR |= (bits.bitMASK_E_set | (bits.bitMASK_E_reset << 16));
+    WRITE(); 
+    bit_setting(data);
+    GPIOD->BSRR |= (bits.bitMASK_D_set | (bits.bitMASK_D_reset << 16));
+    GPIOE->BSRR |= (bits.bitMASK_E_set | (bits.bitMASK_E_reset << 16));
+    WRITE();
+}
+void LCD_par::writeCmd(uint16_t cmd) {
+    bit_setting(cmd>>8);
+    CMD();
+    GPIOD->BSRR |= (bits.bitMASK_D_set | (bits.bitMASK_D_reset << 16));
+    GPIOE->BSRR |= (bits.bitMASK_E_set | (bits.bitMASK_E_reset << 16));
+    WRITE(); 
+    bit_setting(cmd);
+    GPIOD->BSRR |= (bits.bitMASK_D_set | (bits.bitMASK_D_reset << 16));
+    GPIOE->BSRR |= (bits.bitMASK_E_set | (bits.bitMASK_E_reset << 16));
+    WRITE();
+}
+void LCD_par::writeReg(uint16_t cmd, uint16_t data) {
+    writeCmd(cmd);
+    writeData(data);
+}
+
+void LCD_par::reset() {
+    GP_Timers::pThis[0]->delay_ms(50);
+    RES_off();
+    GP_Timers::pThis[0]->delay_ms(150);
+    RES_on();
+}
+
+void LCD_par::bit_setting(uint8_t data) {
+    bits.bitMASK_D_reset=0; bits.bitMASK_D_set=0;
+    bits.bitMASK_E_reset=0; bits.bitMASK_E_set=0;
+    if(data & 1) { bits.bitMASK_D_set |= (1<<14);  }
+    else {bits.bitMASK_D_reset |= (1<<14);}
+    if((data>>1) & 1) {bits. bitMASK_D_set |= (1<<15);  }
+    else {bits.bitMASK_D_reset |= (1<<15);}
+    if(data>>2 & 1) { bits.bitMASK_D_set |= (1<<0);  }
+    else {bits.bitMASK_D_reset |= (1<<0);}
+    if((data>>3) & 1) {bits. bitMASK_D_set |= (1<<1);  }
+    else {bits.bitMASK_D_reset |= (1<<1);}
+
+    if((data>>4) & 1) {bits.bitMASK_E_set |= (1<<7);}
+    else {bits.bitMASK_E_reset |= (1<<7);}
+    if((data>>5) & 1) {bits.bitMASK_E_set |= (1<<8);}
+    else {bits.bitMASK_E_reset |= (1<<8);}
+    if((data>>6) & 1) {bits.bitMASK_E_set |= (1<<9);}
+    else {bits.bitMASK_E_reset |= (1<<9);}
+    if((data>>7) & 1) {bits.bitMASK_E_set |= (1<<10);}
+    else {bits.bitMASK_E_reset |= (1<<10);}
+}
+
+void LCD_par::init(){
+    //GPIOS init:
+    //PD11 - FMC-A16(RS - D/C)  D14-FMC-D0  D15-FMC-D1 
+    //D0-FMC_D2, D1-FMC_D3, D4-FMC_NOE READ_EN, D5-FMC_NWE Write_EN, D7-FMC_NE1 (CS), D2-TS, D3-PEN
     //! PD11 - FMC-A16(RS - D/C)  D14-FMC-D0  D15-FMC-D1
     RCC->AHB4ENR |= RCC_AHB4ENR_GPIODEN; //0x60000000 - D  0x60000001 - C
-    GPIOD->MODER |= (GPIO_MODER_MODE11_1 | GPIO_MODER_MODE14_1 | GPIO_MODER_MODE15_1); 
-    GPIOD->MODER &=~ (GPIO_MODER_MODE11_0 | GPIO_MODER_MODE14_0 | GPIO_MODER_MODE15_0); 
-    GPIOD->OSPEEDR |= (GPIO_OSPEEDR_OSPEED11 | GPIO_OSPEEDR_OSPEED14 | GPIO_OSPEEDR_OSPEED15);
-    GPIOD->AFR[1] |= ((12<<12)|(12<<24)|(12<<28));
-    //! D0-FMC_D2, D1-FMC_D3, D4-FMC_NOE READ_EN, D5-FMC_NWE Write_EN, D7-FMC_NE1 (CS), D2-TS, D3-PEN
-    GPIOD->MODER |= (GPIO_MODER_MODE0_1 | GPIO_MODER_MODE1_1 | GPIO_MODER_MODE4_1 | GPIO_MODER_MODE5_1 | GPIO_MODER_MODE7_1);
-    GPIOD->MODER &=~ (GPIO_MODER_MODE0_0 | GPIO_MODER_MODE1_0 | GPIO_MODER_MODE4_0 | GPIO_MODER_MODE5_0 | GPIO_MODER_MODE7_0); 
-    GPIOD->OSPEEDR |= (GPIO_OSPEEDR_OSPEED0 | GPIO_OSPEEDR_OSPEED1 | GPIO_OSPEEDR_OSPEED4 | GPIO_OSPEEDR_OSPEED5 | GPIO_OSPEEDR_OSPEED7);
-    GPIOD->AFR[0] |= ((12<<0) | (12<<4) | (12<<16) | (12<<20) | (12<<28));
-    GPIOD->MODER |= (GPIO_MODER_MODE2_0 | GPIO_MODER_MODE3_0);
-    GPIOD->MODER &=~ (GPIO_MODER_MODE2_1 | GPIO_MODER_MODE3_1); 
-    GPIOD->OSPEEDR |= (GPIO_OSPEEDR_OSPEED2 | GPIO_OSPEEDR_OSPEED3);
-    //! E7-FMC_D4, E8-FMC_D5, E9-FMC_D6, E10-FMC_D7,
+    GPIOD->MODER |= (GPIO_MODER_MODE11_0 | GPIO_MODER_MODE14_0 | GPIO_MODER_MODE15_0) | 
+                    (GPIO_MODER_MODE0_0 | GPIO_MODER_MODE1_0 | GPIO_MODER_MODE4_0 | GPIO_MODER_MODE5_0 | GPIO_MODER_MODE7_0 |
+                    GPIO_MODER_MODE2_0 | GPIO_MODER_MODE3_0); 
+    GPIOD->MODER &=~ (GPIO_MODER_MODE11_1 | GPIO_MODER_MODE14_1 | GPIO_MODER_MODE15_1 |
+                      GPIO_MODER_MODE0_1 | GPIO_MODER_MODE1_1 | GPIO_MODER_MODE4_1 | GPIO_MODER_MODE5_1 | GPIO_MODER_MODE7_1 |
+                      GPIO_MODER_MODE2_1 | GPIO_MODER_MODE3_1); 
+    GPIOD->OSPEEDR |= (GPIO_OSPEEDR_OSPEED11 | GPIO_OSPEEDR_OSPEED14 | GPIO_OSPEEDR_OSPEED15 |
+                    GPIO_OSPEEDR_OSPEED0 | GPIO_OSPEEDR_OSPEED1 | GPIO_OSPEEDR_OSPEED4 | GPIO_OSPEEDR_OSPEED5 | 
+                    GPIO_OSPEEDR_OSPEED7 | GPIO_OSPEEDR_OSPEED2 | GPIO_OSPEEDR_OSPEED3);
+    GPIOD->BSRR |= (GPIO_BSRR_BS4 | GPIO_BSRR_BS5 | GPIO_BSRR_BS7);
+    //E7-FMC_D4, E8-FMC_D5, E9-FMC_D6, E10-FMC_D7,
     RCC->AHB4ENR |= RCC_AHB4ENR_GPIOEEN;
-    GPIOE->MODER |= (GPIO_MODER_MODE7_1 | GPIO_MODER_MODE8_1 | GPIO_MODER_MODE9_1 | GPIO_MODER_MODE10_1);
-    GPIOE->MODER &=~ (GPIO_MODER_MODE7_0 | GPIO_MODER_MODE8_0 | GPIO_MODER_MODE9_0 | GPIO_MODER_MODE10_0); 
-    GPIOE->OSPEEDR |= (GPIO_OSPEEDR_OSPEED7 | GPIO_OSPEEDR_OSPEED8 | GPIO_OSPEEDR_OSPEED9 | GPIO_OSPEEDR_OSPEED10);
-    GPIOE->AFR[0] |= (12<<28);
-    GPIOE->AFR[1] |= ((12<<0)|(12<<4)|(12<<8));
+    GPIOE->MODER |= (GPIO_MODER_MODE7_0 | GPIO_MODER_MODE8_0 | GPIO_MODER_MODE9_0 | GPIO_MODER_MODE10_0);
+    GPIOE->MODER &=~ (GPIO_MODER_MODE7_1 | GPIO_MODER_MODE8_1 | GPIO_MODER_MODE9_1 | GPIO_MODER_MODE10_1); 
+    GPIOE->OSPEEDR |= (GPIO_OSPEEDR_OSPEED7 | GPIO_OSPEEDR_OSPEED8 | GPIO_OSPEEDR_OSPEED9 | GPIO_OSPEEDR_OSPEED10);   
     //! A-15 RES LCD
     RCC->AHB4ENR |= RCC_AHB4ENR_GPIOAEN;
     GPIOA->MODER |= (GPIO_MODER_MODE15_0);
     GPIOA->MODER &=~ (GPIO_MODER_MODE15_1); 
-    GPIOA->OSPEEDR |= (GPIO_OSPEEDR_OSPEED15);
-	
-	//! MPU CONFIG
-	__DMB();  	
-  	SCB->SHCSR &= ~SCB_SHCSR_MEMFAULTENA_Msk; // Disable fault exceptions   	
-  	MPU->CTRL = 0; // MPU disable Disable the MPU and clear the control register
-	MPU->RNR = 0; //Set the Region number
-	MPU->RBAR = 0X60000000; // Base Address LCD
-	MPU->RASR = 0;
-	MPU->RASR |= 1; //enable
-	MPU->RASR |= (0x1B<<1);//size 0x1B - 256 MBytes
-	MPU->RASR |= (0<<8); //subregion disable = 0;
-	MPU->RASR |= (1<<16); //Bufferable enable = 1;
-	MPU->RASR |= (0<<17); //Casheable disable = 0;
-	MPU->RASR |= (0<<18); //Shearable disable = 0;
-	MPU->RASR |= (0<<19); // TEX: 0:0:0 = 0 TypeExtField
-	MPU->RASR |= (3<<24); // Full access
-	MPU->RASR |= (0<<28); // Instruction access disable bit 1: Instruction fetches disabled. 0: Instruction fetches enabled.
-	//! Enable MPU
-	#define MPU_Control 0x00000004  //MPU_PRIVILEGED_DEFAULT
-	MPU->CTRL = (MPU_Control | MPU_CTRL_ENABLE_Msk);	  	
-  	SCB->SHCSR |= SCB_SHCSR_MEMFAULTENA_Msk; // Enable fault exceptions  	
-  	__DSB();
-  	__ISB(); // Ensure MPU setting take effects 
-
-    //! HCLK3 clock source
-    RCC->D1CCIPR &=~ RCC_D1CCIPR_FMCSEL;
-	//RCC->D1CCIPR |= RCC_D1CCIPR_FMCSEL_0;
-    //! FMC clock enable
-    RCC->AHB3ENR |= RCC_AHB3ENR_FMCEN;    
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_ASYNCWAIT; // Wait signal during asynchronous transfers
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_BURSTEN;   // Burst enable bit
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_CBURSTRW;  // write 0 - async 1 - sycnc
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_CPSIZE;    // CRAM Page Size
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_EXTMOD;    // 1: values inside FMC_BWTR register are taken into account 0: NO BWTR
-    FMC_Bank1_R->BTCR[0] |= FMC_BCRx_FACCEN;     // Flash access enable  (for LCD)
-    FMC_Bank1_R->BTCR[0] |= FMC_BCRx_MBKEN;      // Memory bank enable bit
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_MTYP;
-	FMC_Bank1_R->BTCR[0] |= FMC_BCRx_MTYP_1;     // 0 = SRAM 1 = CRAM 2 = NOR
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_MTYP_0;    // 0 = SRAM 1 = CRAM 2 = NOR
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_MUXEN;     // Multiplexing Address/Data
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_MWID;      // 00 = 8b 01 = 16b 10 = 32bits
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_WAITCFG;   //Wait timing configuration. 0: NWAIT before wait state 1: active during wait state
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_WAITEN;    // wait enable
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCRx_WAITPOL;   // Wait signal polarity bit. 0: NWAIT active low. 1: NWAIT active high
-    FMC_Bank1_R->BTCR[0] |= FMC_BCRx_WREN;       // Write enable bit
-    FMC_Bank1_R->BTCR[0] &=~ FMC_BCR1_CCLKEN;    // Continious clock enable
-    FMC_Bank1_R->BTCR[0] |= FMC_BCR1_FMCEN;      // FMC enable
-
-    FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_ACCMOD;
-	FMC_Bank1_R->BTCR[1] |= FMC_BTRx_ACCMOD_0;    // Access mode 0 = A, !!! 1=B !!!  , 2 = C, 3 = D Use w/EXTMOD bit
-    FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_ADDHLD;
-	FMC_Bank1_R->BTCR[1] |= FMC_BTRx_ADDHLD;   // Address-hold phase duration 1..F * 2 * HCLK
-	FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_ADDSET;   // Address setup phase duration 0..F * HCLK
-    FMC_Bank1_R->BTCR[1] |= FMC_BTRx_ADDSET_3;   // Address setup phase duration 0..F * HCLK
-    FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_BUSTURN;  // Bus turnaround phase duration 0...F
-	//FMC_Bank1_R->BTCR[1] |= FMC_BTRx_BUSTURN;
-    FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_CLKDIV;
-	//FMC_Bank1_R->BTCR[1] |= FMC_BTRx_CLKDIV;   // 0000: Reserved  0001:FMC_CLK period = 2 × fmc_ker_ck periods
-    FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_DATAST;
-	FMC_Bank1_R->BTCR[1] |= (FMC_BWTRx_DATAST_3); // Data-phase duration 0: Reserved  01: DATAST phase duration = 1 × fmc_ker_ck clock cycles
-    FMC_Bank1_R->BTCR[1] &=~ FMC_BTRx_DATLAT;
-	FMC_Bank1_R->BTCR[1] |= FMC_BTRx_DATLAT;    // Data latency for synchronous NOR Flash memory 0(2CK)...F(17CK) 
-	//FMC_Bank1_R->BTCR[2] &=~ FMC_BWTRx_ACCMOD; //access mode a
-	//FMC_Bank1_R->BTCR[2] |= FMC_BWTRx_ACCMOD_0;
-	//FMC_Bank1_R->BTCR[2] &=~ FMC_BWTRx_BUSTURN; //access mode a
-	//FMC_Bank1_R->BTCR[2] &=~ FMC_BWTRx_DATAST;
-	//FMC_Bank1_R->BTCR[2] |= FMC_BWTRx_DATAST;
-	//FMC_Bank1_R->BTCR[2] &=~ FMC_BWTRx_ADDHLD;
-	//FMC_Bank1_R->BTCR[2] |= FMC_BWTRx_ADDHLD;
-	//FMC_Bank1_R->BTCR[2] &=~ FMC_BWTRx_ADDSET;
-	//FMC_Bank1_R->BTCR[2] |= FMC_BWTRx_ADDSET;
+    GPIOA->OSPEEDR |= (GPIO_OSPEEDR_OSPEED15);           
 }
 
-void Nor_LCD::display_init() {
-	GP_Timers::pThis[0]->delay_ms(50);
-    res_off();
-    GP_Timers::pThis[0]->delay_ms(100);
-    res_on();
-    GP_Timers::pThis[0]->delay_ms(50);
-    //writeReg(0x0100, 0x0000); //software reset
-	
+void LCD_par::display_init() {
+    CS_on();
+    reset();
+
     writeReg(0xF000,0x0055);
     writeReg(0xF001,0x00AA);
     writeReg(0xF002,0x0052);
@@ -527,6 +466,7 @@ void Nor_LCD::display_init() {
 	writeReg(0xD632,0x0003);
 	writeReg(0xD633,0x00C1);
 
+
     //#Enable Page0
 	writeReg(0xF000,0x0055);
 	writeReg(0xF001,0x00AA);
@@ -540,7 +480,11 @@ void Nor_LCD::display_init() {
 	writeReg(0xB002,0x0002);
 	writeReg(0xB003,0x0005);
 	writeReg(0xB004,0x0002);
-    
+
+    // SDT
+    writeReg(0xB600, 0x0008);
+    writeReg(0xB500, 0x0050); //0x50  480x800
+
     //## Gate EQ:
 	writeReg(0xB700,0x0000);
 	writeReg(0xB701,0x0000);
@@ -557,6 +501,7 @@ void Nor_LCD::display_init() {
 	writeReg(0xCC00,0x0003);
 	writeReg(0xCC01,0x0000);
 	writeReg(0xCC02,0x0000);
+
     //# Display Timing:
 	writeReg(0xBD00,0x0001);
 	writeReg(0xBD01,0x0084);
@@ -569,32 +514,31 @@ void Nor_LCD::display_init() {
 	writeReg(0xFF02,0x0025);
 	writeReg(0xFF03,0x0001);
     
-   	// SDT
-    writeReg(0xB600, 0x0008);
-    writeReg(0xB500, 0x0050); //0x50  480x800
-	GP_Timers::pThis[0]->delay_ms(1);
     writeReg(0x3500, 0x0000); 
-	//! MADCTL - MY-ROW_order, MX-COLUMN_order, MV-COLUMN/ROW_exchange ML-vertical_refresh order
-    //          RGB-order MH-Horizontal refresh order RSMX-Flip_hor RSMY-Flip_ver        
-    writeReg(0x3600, 0x00A0); //MADCTL (orientation) row/column direction  (C/R exchange)
+    writeReg(0x3600, 0x0000); //MADCTL (orientation) row/column direction
     writeReg(0x3A00, 0x0055); //COLMOD   interface pixel format    
-	//writeCmd(0x0100); //soft reset
+	writeCmd(0x0100); //soft reset
     GP_Timers::pThis[0]->delay_ms(1);
     writeReg(0x1100, 0x0000); //sleep out
+    GP_Timers::pThis[0]->delay_ms(1200);
     writeReg(0x1300, 0x0000); //Partial out
-    GP_Timers::pThis[0]->delay_ms(120);
+    GP_Timers::pThis[0]->delay_ms(10);
     //writeReg(0x2000, 0x0000); //inversion off
     //GP_Timers::pThis[0]->delay_ms(1);
-    //writeReg(0x2300, 0x0000); //all pixel on
-    GP_Timers::pThis[0]->delay_ms(100); 
+    writeReg(0x2300, 0x0000); //all pixel on
+    //GP_Timers::pThis[0]->delay_ms(1); 
     //writeReg(0x3800, 0x0000); //idle off
     //GP_Timers::pThis[0]->delay_ms(1); 
-
+    //! MADCTL - MY-ROW_order, MX-COLUMN_order, MV-COLUMN/ROW_exchange ML-vertical_refresh order
+    //          RGB-order MH-Horizontal refresh order RSMX-Flip_hor RSMY-Flip_ver 
+    
+    //Vertical refresh order
+    //Horizontal refresh order
     
     GP_Timers::pThis[0]->delay_ms(10);
     writeReg(0x2900, 0x0000);//DISP on
-    GP_Timers::pThis[0]->delay_ms(100);
-	/*
+    GP_Timers::pThis[0]->delay_ms(1200);
+
     writeReg(0x2A00, 0x0000); //---start col |_| end col
     writeReg(0x2A01, 0x0000); //Column set start 0x0000 two by 8 bits
     writeReg(0x2A02, 0x0003); //---
@@ -602,92 +546,10 @@ void Nor_LCD::display_init() {
     //GP_Timers::pThis[0]->delay_ms(1);
     writeReg(0x2B00, 0x0000); //---
     writeReg(0x2B01, 0x0000); //Row set start 0x0000 two by 8 bits
-    writeReg(0x2B02, 0x0001); //---
-    writeReg(0x2B03, 0x00E0); //Row set end 0x01E0 (480) two by 8 bits
-	*/
-	setRect(0,0,0x0320,0x01E0);
+    writeReg(0x2B02, 0x0003); //---
+    writeReg(0x2B03, 0x0020); //Row set end 0x01E0 (480) two by 8 bits   
     GP_Timers::pThis[0]->delay_ms(1);
-	writeCmd(0x2C00);
-    for(int i=0; i<=(480*800);i++){
-        writeData(0x00FF);//RAMWR -- write 1 BLACK pixel
+    for(int i=0; i<=1000;i++){
+        writeReg(0x2C00, 0xFFFF);//RAMWR -- write 1 BLACK pixel
     }
-    
-    
-}
-
-void Pixel::setPixel(uint16_t x, uint16_t y, uint16_t color){
-    setRow(y);
-    setColumn(x);
-	writeCmd(0x2C00);
-	writeData(color);
-}
-void Rect::drawRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color) {
-    setRect(x1,y1,x2,y2);
-	GP_Timers::pThis[0]->delay_ms(1);
-	writeCmd(0x2C00);
-    for(int i=0; i<((x2-x1+1)*(y2-y1+1)); i++) {
-        writeData(color);//RAMWR -- write 1 pixel
-    }
-}
-
-//------------------------ FIGUREs -----------------------------------------
-Figure::Figure(){
-	SCB->CPACR |= ((3UL << 20)|(3UL << 22));  /* set CP10 and CP11 Full Access */ //FPU enable
-}
-void Figure::drawHorizontalLine(uint16_t x1, uint16_t y1, uint16_t length, uint16_t width, uint16_t color) {
-	drawRect(x1, y1, x1 + length, y1 + width, color);
-}
-
-void Figure::drawVerticalLine(uint16_t x1, uint16_t y1, uint16_t length, uint16_t width, uint16_t color) {
-	drawRect(x1, y1, x1 + width, y1 + length, color);
-}
-
-void Figure::drawFrame(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t width, uint16_t color) {
-	drawHorizontalLine(x1, y1, x2 - x1, width/2, color);
-	drawHorizontalLine(x1, y2 - width/2, x2 - x1, width/2, color);
-	drawVerticalLine(x1, y1, y2 - y1, width/2, color);
-	drawVerticalLine(x2 - width/2, y1, y2-y1, width/2, color);
-}
-
-void Figure::drawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color) {
-	float length1 = sqrtf((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
-    for(uint16_t i=0;i<uint32_t(length1);i++) { //uint16_t(length)     
-        //setPixel(x1+i,y1+sqrtf(i),col);  		  
-        setPixel(x1+(float)(i*(x2-x1)/length1), y1 + (float)(i*(y2-y1)/length1), color);            
-    }
-}
-
-void Figure::drawCircle(uint16_t x,uint16_t y,float R, uint16_t color) {	
-	int f = 1 - R;	int ddF_x = 1;
-	int ddF_y = -2 * R; int x0 = 0;
-  	int y0 = R;
-  	setPixel(x , y + R, color);
-  	setPixel(x , y - R, color);
-  	setPixel(x + R, y , color);
-  	setPixel(x - R, y , color);
-  	while (x0<y0) {
-    	if (f >= 0) {
-    		y0--;
-     		ddF_y += 2;
-     		f += ddF_y;
-    	}
-    	x0++; ddF_x += 2; f += ddF_x;
-    	setPixel(x + x0, y + y0, color);
-    	setPixel(x - x0, y + y0, color);
-    	setPixel(x + x0, y - y0, color);
-    	setPixel(x - x0, y - y0, color);
-    	setPixel(x + y0, y + x0, color);
-    	setPixel(x - y0, y + x0, color);
-    	setPixel(x + y0, y - x0, color);
-    	setPixel(x - y0, y - x0, color);
-	}			
-}
-
-void Figure::drawFatCircle(uint16_t x,uint16_t y,float R,uint16_t width, uint16_t color) {
-	for(int i=0; i<width; i++) {
-		drawCircle(x,y,R-i,color);
-		drawCircle(x-1,y-1,R-i,color);
-		drawCircle(x,y-1,R-i,color);
-		drawCircle(x-1,y,R-i,color);
-	}
 }

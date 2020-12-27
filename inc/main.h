@@ -21,6 +21,8 @@
 #include "buzzer.h"
 #include "timer.h"
 #include "pardac.h"
+#include "fmc.h"
+#include "lcd_par.h"
 //*******************************************************
 
 //class SYStick

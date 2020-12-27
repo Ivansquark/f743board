@@ -6,13 +6,15 @@
 class GP_Timers {
 public:    
     enum Period {
-        us=0,
-        ms=1
+        ms=0,
+        us=1
     };    
-    
+    static uint8_t pThis_Number;
     GP_Timers(uint8_t timNum, Period period);    
     bool TimSets=0;
-static GP_Timers* pThis;
+    uint32_t counter=0;
+    void delay_ms(uint32_t ms);
+static GP_Timers* pThis[2];
 private:
     void timer_ini(uint8_t tim, Period period);
 };

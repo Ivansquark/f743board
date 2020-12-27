@@ -7,7 +7,9 @@ class Buzzer {
 public:
     Buzzer(){buzzer_init();}
     void beep() {
+        int x=10000;
         GPIOB->ODR ^= GPIO_ODR_OD9;
+        while(x--);
     }
     inline void off() {GPIOB->ODR &=~ GPIO_ODR_OD9;}
 private:
