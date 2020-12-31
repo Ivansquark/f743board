@@ -3,13 +3,16 @@
 void Nor_LCD_interface::writeData(uint16_t data) {
     LCD->DATA = data>>8;    
 	LCD->DATA = data; 
-	//for(int i=0;i<1;i++) {
+	//for(int i=0;i<10;i++) {
 	//	__ASM("nop");
 	//}
 }
 void Nor_LCD_interface::writeCmd(uint16_t cmd) {
     LCD->CMD = cmd>>8;
-    LCD->CMD = cmd;   
+    LCD->CMD = cmd;
+	//for(int i=0;i<10;i++) {
+	//	__ASM("nop");
+	//}   
 }
 void Nor_LCD_interface::writeReg(const uint16_t LCD_REG, const uint16_t reg_val) {
     LCD->CMD = LCD_REG>>8;
@@ -656,8 +659,28 @@ void Figure::drawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16
         setPixel(x1+(float)(i*(x2-x1)/length1), y1 + (float)(i*(y2-y1)/length1), color);            
     }
 }
+void Figure::drawFatLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t width, uint16_t color) {
+	float len = sqrtf((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+	int16_t dx = (x2-x1); int16_t dy = (y2-y1);
+	int16_t ddx=0; int16_t ddy=0;
+	for(int i=0; i<width; i++){
+		if(dx>=0) {
+			ddx = -((int16_t)(i*(float)(dy/len)));
+			ddy = (int16_t)(i*(float)(dx/len));	
+		} else {
+			ddy = abs((int16_t)(i*(float)(dx/len)));
+			ddx = (int16_t)(i*(float)(dy/len));
+		}
+		drawLine(x1+ddx, y1+ddy, 
+				x2+ddx, y2+ddy, color);
+		drawLine(x1+1+ddx, y1+ddy, 
+				x2+1+ddx, y2+ddy, color);
+		drawLine(x1+ddx, y1+1+ddy, 
+				x2+ddx, y2+1+ddy, color);					
+	}
+}
 
-void Figure::drawCircle(uint16_t x,uint16_t y,float R, uint16_t color) {	
+void Figure::drawCircle(uint16_t x,uint16_t y,float R, uint16_t color) { //Bresenham	
 	int f = 1 - R;	int ddF_x = 1;
 	int ddF_y = -2 * R; int x0 = 0;
   	int y0 = R;
@@ -690,4 +713,62 @@ void Figure::drawFatCircle(uint16_t x,uint16_t y,float R,uint16_t width, uint16_
 		drawCircle(x,y-1,R-i,color);
 		drawCircle(x-1,y,R-i,color);
 	}
+}
+
+void Figure::drawFloatCircle(uint16_t x,uint16_t y,float R,uint16_t col) {
+	for (uint16_t i=0;i<=2*R;i++) {
+        setPixel(x+i,y+sqrtf(R*R - (i-R)*(i-R))+R,col);
+        setPixel(x+i,y-sqrtf(R*R - (i-R)*(i-R))+R,col);
+        setPixel(x+sqrtf(R*R - (i-R)*(i-R))+R,y+i,col);
+        setPixel(x-sqrtf(R*R - (i-R)*(i-R))+R,y+i,col);
+    }
+}
+
+void Figure::drawFloatFatCircle(uint16_t x,uint16_t y,float R,uint16_t width, uint16_t color) {
+	for(int j=0; j<width; j++) {
+		drawFloatCircle(x+j, y+j, R-j, color);
+		drawFloatCircle(x+j+1, y+j, R-j, color);
+		drawFloatCircle(x+j, y+j+1, R-j, color);
+	}
+}
+
+void Figure::drawFatLineOnCircle(uint16_t x, uint16_t y, uint16_t R, uint16_t angle, uint16_t width, uint16_t len, uint16_t color) {
+	float dx = cos((float)angle*Pi/180); float dy = sin((float)angle*Pi/180);
+	drawFatLine(x+(R-len)*dx, y+(R-len)*dy,x+R*dx,y+R*dy,width,color);
+}
+
+void Figure::drawTriangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color) {
+	drawLine(x1, y1, x2, y2, color);
+	drawLine(x2, y2, x3, y3, color);
+	drawLine(x3, y3, x1, y1, color);	
+}
+
+void Figure::drawFilledTriangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color) {
+	float length1 = sqrtf((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+	float length2 = sqrtf((x3-x2)*(x3-x2)+(y3-y2)*(y3-y2));
+	float length3 = sqrtf((x3-x1)*(x3-x1)+(y3-y1)*(y3-y1));
+	float dx2 = (x3-x2)/length2; float dy2 = (y3-y2)/length2;
+	float dx3 = (x1-x3)/length3; float dy3 = (y1-y3)/length3;
+	float dx1 = (x2-x1)/length1; float dy1 = (y2-y1)/length1;
+	for(int i=0; i <= length2; i++) {
+		drawLine(x1, y1, x2+i*dx2, y2+i*dy2, color);
+	}
+	for(int i=0; i <= length3; i++) {
+		drawLine(x2, y2, x3+i*dx3, y3+i*dy3, color);
+	}
+	for(int i=0; i <= length1; i++) {
+		drawLine(x3, y3, x1+i*dx1, y1+i*dy1, color);
+	}
+}
+
+void Figure::drawSych() {
+	drawFrame(10,10,50,50,3,0xFF00);
+	drawFrame(9,9,51,51,1,0xFFA0);		
+	drawFatCircle(200,240,100,100,BLUE);
+	drawFloatFatCircle(500,140,100,100,BLUE);
+	drawFatCircle(200,280,50,50, BLACK);
+	drawFatCircle(600,280,50,50, BLACK);
+	drawFatLine(500,100,700,0,50, GRAY2);
+	drawFatLine(100,0,300,100,50, GRAY2);
+	drawFilledTriangle(400,450,400,400,350,450, BRIGHT_RED);
 }

@@ -42,11 +42,11 @@ $(BLD)main.bin: $(BLD)main.elf
 $(BLD)main.lst: $(BLD)main.elf
 	$(OBJD) -D $(BLD)main.elf > $(BLD)main.lst
 
-$(BLD)main.elf: $(BLD)startup.o $(BLD)main.o $(BLD)timer.o $(BLD)encoder.o $(BLD)rcc_init.o $(BLD)pardac.o $(BLD)fmc.o $(BLD)lcd_par.o
+$(BLD)main.elf: $(BLD)startup.o $(BLD)main.o $(BLD)timer.o $(BLD)encoder.o $(BLD)rcc_init.o $(BLD)pardac.o $(BLD)fmc.o $(BLD)font.o $(BLD)F_28x30_Digit.o
  
 	$(CC) -o $(BLD)main.elf -T$(LIB)stm32h743.ld \
 	$(BLD)startup.o $(BLD)timer.o $(BLD)encoder.o $(BLD)main.o $(BLD)rcc_init.o \
-	$(BLD)pardac.o $(BLD)fmc.o $(BLD)lcd_par.o \
+	$(BLD)pardac.o $(BLD)fmc.o $(BLD)font.o $(BLD)F_28x30_Digit.o \
 	-I$(LIB) $(LCPPFLAGS)
 
 # malloc.o tasks.o heap_2.o timers.o list.o port.o queue.o \
@@ -81,8 +81,12 @@ $(BLD)pardac.o: $(SRC)pardac.cpp #$(INC) #$(FRH)
 	$(CC) $(SRC)pardac.cpp -o $(BLD)pardac.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
 $(BLD)fmc.o: $(SRC)fmc.cpp #$(INC) #$(FRH)
 	$(CC) $(SRC)fmc.cpp -o $(BLD)fmc.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
-$(BLD)lcd_par.o: $(SRC)lcd_par.cpp #$(INC) #$(FRH)
-	$(CC) $(SRC)lcd_par.cpp -o $(BLD)lcd_par.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)			
+#$(BLD)lcd_par.o: $(SRC)lcd_par.cpp #$(INC) #$(FRH)
+#	$(CC) $(SRC)lcd_par.cpp -o $(BLD)lcd_par.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)	
+$(BLD)font.o: $(SRC)font.cpp #$(INC) #$(FRH)
+	$(CC) $(SRC)font.cpp -o $(BLD)font.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
+$(BLD)F_28x30_Digit.o: $(SRC)F_28x30_Digit.cpp #$(INC) #$(FRH)
+	$(CC) $(SRC)F_28x30_Digit.cpp -o $(BLD)F_28x30_Digit.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)				
 
 $(BLD)main.o: $(SRC)main.cpp #$(INC) #$(FRH)
 	$(CC) $(SRC)main.cpp -o $(BLD)main.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)

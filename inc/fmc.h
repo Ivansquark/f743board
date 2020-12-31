@@ -71,13 +71,21 @@ public:
     void drawHorizontalLine(uint16_t x1, uint16_t y1, uint16_t length, uint16_t width, uint16_t color);
     void drawFrame(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t width, uint16_t color);
     void drawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
+    void drawFatLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t width, uint16_t color);
+    void drawFatLineOnCircle(uint16_t x1, uint16_t y1, uint16_t R, uint16_t angle, uint16_t width, uint16_t len, uint16_t color);
     void drawCircle(uint16_t x,uint16_t y,float R, uint16_t color=BLACK);
     void drawFatCircle(uint16_t x,uint16_t y,float R,uint16_t width, uint16_t color=BLACK);
-
+    void drawFloatCircle(uint16_t x=0,uint16_t y=0,float R=0,uint16_t col=BLACK);
+    void drawFloatFatCircle(uint16_t x,uint16_t y,float R,uint16_t width, uint16_t color=BLACK);
+    void drawTriangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color);
+    void drawFilledTriangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color);
+    
+    void drawSych();
 private:
     inline void swap(uint16_t* x1, uint16_t* x2) {
         if(*x1>*x2){uint16_t z=*x1; *x1=*x2; *x2=z;}
     }
+    static constexpr float Pi = 3.1415926535F;
 };
 
 

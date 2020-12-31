@@ -61,9 +61,9 @@ void RCC_INIT::rcc_init(uint16_t clock) {
 				RCC -> PLL1DIVR = 0;
 				RCC -> PLL2DIVR = 0;
 				RCC -> PLL3DIVR = 0;
-				RCC -> PLL1DIVR  |= (1<<24)|(1<<16)|(1<<9)|(400<<0);	
+				RCC -> PLL1DIVR  |= (1<<24)|(1<<16)|(1<<9)|(360<<0);	
                 RCC->PLLCFGR = 0;
-				RCC->PLLCFGR |= RCC_PLLCFGR_PLL1RGE_1; //Указание диапазона входной частоты PLL1 /* Select PLL1 input reference frequency range: VCI */
+				RCC->PLLCFGR |= RCC_PLLCFGR_PLL1RGE_2; //Указание диапазона входной частоты PLL1 /* Select PLL1 input reference frequency range: VCI */
 				RCC->PLLCFGR &=~ RCC_PLLCFGR_PLL1VCOSEL; // Указание диапазона выходной частоты PLL1 /* Select PLL1 output frequency range : VCO */	
 				RCC -> D1CFGR = 0;
 				RCC -> D1CFGR &=~ (RCC_D1CFGR_D1CPRE); //Divide on 1
@@ -77,12 +77,12 @@ void RCC_INIT::rcc_init(uint16_t clock) {
 				RCC -> D3CFGR |=  RCC_D3CFGR_D3PPRE_2;
 				RCC -> D3CFGR &=~ (RCC_D3CFGR_D3PPRE_1 | RCC_D3CFGR_D3PPRE_0); // 1:0:0 Делитель на 2 D2PPRE3 : rcc_pclk1 = rcc_hclk1 / 2	
 				FLASH->ACR &=~ FLASH_ACR_LATENCY;
-				FLASH->ACR |= FLASH_ACR_LATENCY_6WS;
+				FLASH->ACR |= FLASH_ACR_LATENCY_2WS;
 			}	break;
 			case 480:
 			{
 				//PLLM = 4
-				RCC -> PLLCKSELR |= (4<<4); // = 4 
+				RCC -> PLLCKSELR |= (8<<4); // = 8 
 				//PLL1DIVR     bits
 				//DIVN1[8:0]  0  - 8   PLLN = 500     
 				//DIVP1[6:0]  9  - 15  PLLP = 2  => 1 in register
@@ -91,9 +91,9 @@ void RCC_INIT::rcc_init(uint16_t clock) {
 				RCC -> PLL1DIVR = 0;
 				RCC -> PLL2DIVR = 0;
 				RCC -> PLL3DIVR = 0;
-				RCC -> PLL1DIVR  |= (1<<24)|(1<<16)|(1<<9)|(480<<0);	
+				RCC -> PLL1DIVR  |= (1<<24)|(1<<16)|(1<<9)|(400<<0);	
                 RCC->PLLCFGR = 0;
-				RCC->PLLCFGR |= RCC_PLLCFGR_PLL1RGE_1; //Указание диапазона входной частоты PLL1 /* Select PLL1 input reference frequency range: VCI */
+				RCC->PLLCFGR |= RCC_PLLCFGR_PLL1RGE_3; //Указание диапазона входной частоты PLL1 /* Select PLL1 input reference frequency range: VCI */
 				RCC->PLLCFGR &=~ RCC_PLLCFGR_PLL1VCOSEL; // Указание диапазона выходной частоты PLL1 /* Select PLL1 output frequency range : VCO */	
 				RCC -> D1CFGR = 0;
 				RCC -> D1CFGR &=~ (RCC_D1CFGR_D1CPRE); //Divide on 1
@@ -108,13 +108,15 @@ void RCC_INIT::rcc_init(uint16_t clock) {
 				RCC -> D3CFGR &=~ (RCC_D3CFGR_D3PPRE_1 | RCC_D3CFGR_D3PPRE_0); // 1:0:0 Делитель на 2 D2PPRE3 : rcc_pclk1 = rcc_hclk1 / 2	
 				FLASH->ACR &=~ FLASH_ACR_LATENCY;
 				FLASH->ACR |= FLASH_ACR_LATENCY_3WS;
+				RCC -> PLLCKSELR |= RCC_PLLCKSELR_PLLSRC_HSE; //  PLL1 — внешний кварц.
+				//return;
 			}	break;            
 			default: /* Enable HSI*/ RCC->CR &=~ RCC_CR_HSEON; RCC->CR |= RCC_CR_HSION; return; break;
 		}
-		RCC -> PLL1FRACR = 0;//0x1A00; //Дробный делитель частоты PLL (если нужен)
+		RCC -> PLL1FRACR = 0x1A00;//0x1A00; //Дробный делитель частоты PLL (если нужен)
 		
 		RCC->PLLCFGR |= RCC_PLLCFGR_DIVP1EN | RCC_PLLCFGR_DIVQ1EN | RCC_PLLCFGR_DIVR1EN;
-		RCC->PLLCFGR &=~ RCC_PLLCFGR_PLL1FRACEN; // Включение дробного делителя.					
+		//RCC->PLLCFGR |= RCC_PLLCFGR_PLL1FRACEN; // Включение дробного делителя.					
 		RCC->CR |= RCC_CR_PLLON; //Пуск PLL1 и ожидание готовности
 		while(!(RCC->CR & RCC_CR_PLL1RDY));
 		//PA8 - MCO
@@ -133,5 +135,5 @@ void RCC_INIT::rcc_init(uint16_t clock) {
 		RCC->CR &=~ RCC_CR_HSION; // Enable HSE
 		// dont forget set FLASH LATENCY!!!!!!!!!!!!!!!!!!!!!!!!!
         //FLASH->ACR = 0;
-		//FLASH->ACR |= FLASH_ACR_LATENCY_4WS;
+		//FLASH->ACR |= FLASH_ACR_LATENCY_4WS;		
 }

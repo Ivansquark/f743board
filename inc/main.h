@@ -22,7 +22,9 @@
 #include "timer.h"
 #include "pardac.h"
 #include "fmc.h"
-#include "lcd_par.h"
+//#include "lcd_par.h"
+#include "watchdog.h"
+#include "font.h"
 //*******************************************************
 
 //class SYStick
