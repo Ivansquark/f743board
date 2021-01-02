@@ -7,7 +7,7 @@ Font_28x30_D::Font_28x30_D(uint16_t color_background_C, uint16_t color_figure_C)
     color_background_new = color_background_C;
     color_figure_new = color_figure_C;
     const uint16_t* charAddress = image_data_Font_28x30_0x20;
-    for(int i=0; i<10920; i++){
+    for(int i=0; i<11760; i++){
         if(*((uint16_t*)charAddress + i) == color_background_old) {
             *((uint16_t*)charAddress + i) = color_background_new;
         } else if(*((uint16_t*)charAddress + i) == color_figure_old) {
@@ -20,7 +20,7 @@ Font_28x30_D::Font_28x30_D(uint16_t color_background_C, uint16_t color_figure_C)
 
 void Font_28x30_D::setColors(uint16_t back, uint16_t fig) {
     const uint16_t* charAddress = image_data_Font_28x30_0x20;
-    for(int i=0; i<10920; i++){
+    for(int i=0; i<11760; i++){
         if(*((uint16_t*)charAddress + i) == color_background_old) {
             *((uint16_t*)charAddress + i) = back;
         } else if(*((uint16_t*)charAddress + i) == color_figure_old) {

@@ -25,6 +25,7 @@
 //#include "lcd_par.h"
 #include "watchdog.h"
 #include "font.h"
+#include "rtc.h"
 //*******************************************************
 
 //class SYStick

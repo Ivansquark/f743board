@@ -14,6 +14,7 @@ extern "C" void _exit(int i) {
 
 int main()
 {	
+	Rtc rtc;
 	RCC_INIT rcc(400);  //HSI = 64 MHz 480 from HSI
 	Encoder enc;
 	Buzzer buzz;
@@ -94,7 +95,19 @@ int main()
 			enc.But_PC9 = false;
 		}
 		//watchDog.refreshCounter(); // resets in counter
+// show time:		
+		rtc.getTime();
+		font1_28x30.drawIntValue(500,0,font1_28x30.intToChar(rtc.currentTime.hour/10),1);
+		font1_28x30.drawIntValue(528,0,font1_28x30.intToChar(rtc.currentTime.hour%10),1);
+		font1_28x30.drawSymbol(554,0,':');
+		font1_28x30.drawIntValue(582,0,font1_28x30.intToChar(rtc.currentTime.minute/10),1);
+		font1_28x30.drawIntValue(610,0,font1_28x30.intToChar(rtc.currentTime.minute%10),1);
+		font1_28x30.drawSymbol(638,0,':');
+		font1_28x30.drawIntValue(666,0,font1_28x30.intToChar(rtc.currentTime.second/10),1);
+		font1_28x30.drawIntValue(694,0,font1_28x30.intToChar(rtc.currentTime.second%10),1);
 	}
+	
+
     return 0;
 }
 
