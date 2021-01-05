@@ -2,6 +2,7 @@
 #define TIMER_H
 
 #include "stm32h743xx.h"
+#include "encoder.h"
 
 class GP_Timers {
 public:    
@@ -14,7 +15,7 @@ public:
     bool TimSets=0;
     uint32_t counter=0;
     void delay_ms(uint32_t ms);
-static GP_Timers* pThis[2];
+static GP_Timers* pThis[3];
 private:
     void timer_ini(uint8_t tim, Period period);
 };

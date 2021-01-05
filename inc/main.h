@@ -26,6 +26,7 @@
 #include "watchdog.h"
 #include "font.h"
 #include "rtc.h"
+#include "sd.h"
 //*******************************************************
 
 //class SYStick

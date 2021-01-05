@@ -42,11 +42,11 @@ $(BLD)main.bin: $(BLD)main.elf
 $(BLD)main.lst: $(BLD)main.elf
 	$(OBJD) -D $(BLD)main.elf > $(BLD)main.lst
 
-$(BLD)main.elf: $(BLD)startup.o $(BLD)main.o $(BLD)timer.o $(BLD)encoder.o $(BLD)rcc_init.o $(BLD)pardac.o $(BLD)fmc.o $(BLD)font.o $(BLD)F_28x30_Digit.o $(BLD)rtc.o
+$(BLD)main.elf: $(BLD)startup.o $(BLD)main.o $(BLD)timer.o $(BLD)encoder.o $(BLD)rcc_init.o $(BLD)pardac.o $(BLD)fmc.o $(BLD)font.o $(BLD)F_28x30_Digit.o $(BLD)rtc.o $(BLD)sd.o
  
 	$(CC) -o $(BLD)main.elf -T$(LIB)stm32h743.ld \
 	$(BLD)startup.o $(BLD)timer.o $(BLD)encoder.o $(BLD)main.o $(BLD)rcc_init.o \
-	$(BLD)pardac.o $(BLD)fmc.o $(BLD)font.o $(BLD)F_28x30_Digit.o $(BLD)rtc.o \
+	$(BLD)pardac.o $(BLD)fmc.o $(BLD)font.o $(BLD)F_28x30_Digit.o $(BLD)rtc.o $(BLD)sd.o \
 	-I$(LIB) $(LCPPFLAGS)
 
 # malloc.o tasks.o heap_2.o timers.o list.o port.o queue.o \
@@ -88,7 +88,9 @@ $(BLD)rtc.o: $(SRC)rtc.cpp #$(INC) #$(FRH)
 $(BLD)font.o: $(SRC)font.cpp #$(INC) #$(FRH)
 	$(CC) $(SRC)font.cpp -o $(BLD)font.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
 $(BLD)F_28x30_Digit.o: $(SRC)F_28x30_Digit.cpp #$(INC) #$(FRH)
-	$(CC) $(SRC)F_28x30_Digit.cpp -o $(BLD)F_28x30_Digit.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)				
+	$(CC) $(SRC)F_28x30_Digit.cpp -o $(BLD)F_28x30_Digit.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
+$(BLD)sd.o: $(SRC)sd.cpp #$(INC) #$(FRH)
+	$(CC) $(SRC)sd.cpp -o $(BLD)sd.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)				
 
 $(BLD)main.o: $(SRC)main.cpp #$(INC) #$(FRH)
 	$(CC) $(SRC)main.cpp -o $(BLD)main.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)

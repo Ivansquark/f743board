@@ -7,6 +7,85 @@ Encoder::Encoder() {
     shag_init();
     pThis = this;
 }
+
+void Encoder::enc1_counter_change() {
+    enc1_state_new = ((GPIOA->IDR & GPIO_IDR_ID3 >> 3) | (GPIOB->IDR & GPIO_IDR_ID7 >> 6));
+    if(enc1_counter == 100) {
+        enc1_counter = 99;
+    }
+    if(enc1_state_old == 3) {
+        if(enc1_state_new == 1) {
+            enc1_counter--;
+        } else if (enc1_state_new == 2) {
+            enc1_counter++;
+        }
+    } else if (enc1_state_old == 2) {
+        if(enc1_state_new == 3) {
+            enc1_counter--;
+        } else if (enc1_state_new == 0) {
+            enc1_counter++;
+        }
+    } else if (enc1_state_old == 1) {
+        if(enc1_state_new == 0) {
+            enc1_counter--;
+        } else if (enc1_state_new == 3) {
+            enc1_counter++;
+        }
+    } else if (enc1_state_old == 0) {
+        if(enc1_state_new == 1) {
+            enc1_counter++;
+        } else if (enc2_state_new == 2) {
+            enc1_counter--;
+        }
+    }
+    if(enc1_counter == 101) {
+        enc1_counter = 99;
+    }
+    if(enc1_counter == 65535) {
+        enc1_counter = 0;
+    }
+    enc1_state_old = enc1_state_new;
+}
+
+void Encoder::enc2_counter_change() {
+    enc2_state_new = (((GPIOA->IDR & GPIO_IDR_ID8) >> 8) | ((GPIOB->IDR & GPIO_IDR_ID5) >> 4));
+    if(enc2_counter == 100) {
+        enc2_counter = 99;
+    }
+    if(enc2_state_old == 3) {
+        if(enc2_state_new == 1) {
+            enc2_counter--;
+        } else if (enc2_state_new == 2) {
+            enc2_counter++;
+        }
+    } else if (enc2_state_old == 2) {
+        if(enc2_state_new == 3) {
+            enc2_counter--;
+        } else if (enc2_state_new == 0) {
+            enc2_counter++;
+        }
+    } else if (enc2_state_old == 1) {
+        if(enc2_state_new == 0) {
+            enc2_counter--;
+        } else if (enc2_state_new == 3) {
+            enc2_counter++;
+        }
+    } else if (enc2_state_old == 0) {
+        if(enc2_state_new == 1) {
+            enc2_counter++;
+        } else if (enc2_state_new == 2) {
+            enc2_counter--;
+        }
+    }
+    if(enc2_counter == 101) {
+        enc2_counter = 99;
+    }
+    if(enc2_counter == 65535) {
+        enc2_counter = 0;
+    }
+    enc2_state_old = enc2_state_new;
+}
+
 void Encoder::SM_forward(uint16_t steps) {
     for(int i =0; i<steps; i++) {
         SM_step_forward();
@@ -58,7 +137,7 @@ void Encoder::shag_init() {
 }
 
 void Encoder::encoder_init() {
-    //! GpioA PA3-Enc1_CW PB7-Enc1_CCW   PC3_Enc1_but |  PA-8-Enc2_Cw  - PB5-Enc2_CCW   PC9_Enc1_but
+    //! GpioA PA3-Enc1_CW PB7-Enc1_CCW(should be soldered to right pin) PC3_Enc1_but ||||  PA-8-Enc2_Cw  - PB5-Enc2_CCW   PC9_Enc1_but
     //! but Enc1
     RCC->AHB4ENR |= RCC_AHB4ENR_GPIOCEN; 
     GPIOC->MODER &=~ GPIO_MODER_MODE3;      // input mode
