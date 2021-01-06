@@ -194,7 +194,7 @@ private:
     static constexpr uint8_t SD_CMD_SEND_WRITE_PROT      = 30U; // Not supported in SPI mode
     static constexpr uint8_t SD_CMD_ERASE                = 38U;
     static constexpr uint8_t SD_CMD_LOCK_UNLOCK          = 42U;
-    static constexpr uint8_t SD_CMD_APP_CMD              = 55U;
+    static constexpr uint8_t SD_CMD_APP_CMD              = 55U; // 
     static constexpr uint8_t SD_CMD_READ_OCR             = 58U; // Read OCR register
     static constexpr uint8_t SD_CMD_CRC_ON_OFF           = 59U; // On/Off CRC check by SD Card (in SPI mode)
     // SDIO CMD response type
@@ -215,9 +215,9 @@ private:
     // SDIO flags for multiple block receive
     static constexpr uint32_t SDIO_RX_MB_FLAGS =       (SDIO_XFER_COMMON_FLAGS | SDMMC_STA_DATAEND | SDMMC_STA_RXOVERR);
     // SDIO flags for single block transmit
-    static constexpr uint32_t SDIO_TX_SB_FLAGS =       (SDIO_XFER_COMMON_FLAGS | SDMMC_STA_DBCKEND | SDMMC_STA_TXUNDERR);
+    static constexpr uint32_t SDIO_TX_SB_FLAGS =       (SDIO_XFER_COMMON_FLAGS | SDMMC_STA_TXUNDERR | SDMMC_STA_DATAEND);
     // SDIO flags for multiple block transmit
-    static constexpr uint32_t SDIO_TX_MB_FLAGS =       (SDIO_XFER_COMMON_FLAGS | SDMMC_STA_DATAEND | SDMMC_STA_TXUNDERR);
+    static constexpr uint32_t SDIO_TX_MB_FLAGS =       (SDIO_XFER_COMMON_FLAGS | SDMMC_STA_DBCKEND | SDMMC_STA_TXUNDERR);
     // SDIO transfer error flags
     static constexpr uint32_t SDIO_XFER_ERROR_FLAGS =  (SDIO_XFER_COMMON_FLAGS | SDMMC_STA_TXUNDERR | SDMMC_STA_RXOVERR);
 

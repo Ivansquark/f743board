@@ -3,6 +3,7 @@
 SD* SD::pThis = nullptr;
 
 SD::SD() {
+	pThis = this;
     init();
 }
 
@@ -12,7 +13,7 @@ void SD::Cmd(uint8_t cmd, uint32_t arg, uint32_t resp_type) {
 				   SDMMC_ICR_CMDRENDC | SDMMC_ICR_CMDSENTC); // Bitmap to clear the SDIO command flags
 	// Program an argument for command
 	SDMMC2->ARG = arg;
-	// Program command value and response type, enable CPSM
+	// Program command value and response type, enable CPSM (command path state machine)
 	SDMMC2->CMD = cmd | resp_type | SDMMC_CMD_CPSMEN;
 }
 
@@ -80,10 +81,10 @@ SD::SDResult SD::GetR2Resp(uint32_t *pBuf) {
 	SDMMC2->ICR = SDIO_ICR_STATIC;
 	// SDMMC_RESP[1..4] registers contains the R2 response
     // Use GCC built-in intrinsics (fastest, less code) (GCC v4.3 or later)
-	*pBuf++ = __builtin_bswap32(SDMMC1->RESP1);
-	*pBuf++ = __builtin_bswap32(SDMMC1->RESP2);
-	*pBuf++ = __builtin_bswap32(SDMMC1->RESP3);
-	*pBuf   = __builtin_bswap32(SDMMC1->RESP4);
+	*pBuf++ = __builtin_bswap32(SDMMC2->RESP1);
+	*pBuf++ = __builtin_bswap32(SDMMC2->RESP2);
+	*pBuf++ = __builtin_bswap32(SDMMC2->RESP3);
+	*pBuf   = __builtin_bswap32(SDMMC2->RESP4);
 	return SDR_Success;
 }
 
@@ -169,11 +170,12 @@ SD::SDResult SD::GetSCR(uint32_t *pSCR) {
 	// Clear the data flags
 	SDMMC2->ICR = SDIO_ICR_DATA;
 	// Configure the SDIO data transfer
-	SDMMC2->DTIMER = SD_DATA_R_TIMEOUT; // Data read timeout
+	SDMMC2->DTIMER = 0xFFFF; //SD_DATA_R_TIMEOUT; // Data read timeout
 	SDMMC2->DLEN   = 8; // Data length in bytes
 	// Data transfer:
 	//   - type: block   - direction: card -> controller   - size: 2^3 = 8bytes   - DPSM: enabled
-	SDMMC2->DCTRL  = SDMMC_DCTRL_DTDIR | (3 << 4) | SDMMC_DCTRL_DTEN;
+	SDMMC2->DCTRL  = SDMMC_DCTRL_DTDIR | (3 << 4) | SDMMC_DCTRL_DTEN;// | SDMMC_DCTRL_SDIOEN;
+	
 	// Send SEND_SCR command
 	Cmd(SD_CMD_SEND_SCR, 0, SD_RESP_SHORT); // ACMD51
 	cmd_res = GetR1Resp(SD_CMD_SEND_SCR);
@@ -181,9 +183,24 @@ SD::SDResult SD::GetSCR(uint32_t *pSCR) {
 		return cmd_res;
 	}
 	// Receive the SCR register value
-	while (!(SDMMC2->STA & (SDMMC_STA_RXOVERR | SDMMC_STA_DCRCFAIL | SDMMC_STA_DTIMEOUT | SDMMC_STA_DBCKEND))) {
+	uint32_t timeout = 0xFFFFF;
+	uint32_t timeout1 = 100;
+	uint32_t WordCounter = 0;
+	uint32_t Counter1 = 0;
+	uint32_t Counter2 = 0;
+	while (!(SDMMC2->STA & (SDMMC_STA_RXOVERR | SDMMC_STA_DCRCFAIL | SDMMC_STA_DTIMEOUT | SDMMC_STA_DBCKEND | SDMMC_STA_DATAEND))) {
 		// Read word when data available in receive FIFO
-		if (SDMMC2->STA & SDMMC_STA_RXFIFOF) {*pSCR++ = SDMMC2->FIFO;} 
+		Counter1++;
+		if(!(SDMMC2->STA & SDMMC_STA_RXFIFOE)){
+			Counter2++;
+			if(SDMMC2->DCOUNT != 0) {
+				*pSCR++ = SDMMC2->FIFO;
+				WordCounter++;
+				while(timeout1--);
+				timeout1=0;
+			}			
+		}			 
+		if(timeout-- == 0 ){break;}
 	}
 	// Check for errors
 	if (SDMMC2->STA & (SDMMC_STA_DTIMEOUT | SDMMC_STA_DCRCFAIL | SDMMC_STA_RXOVERR )) {
@@ -202,6 +219,11 @@ SD::SDResult SD::SetBlockSize(uint32_t block_size) {
 	Cmd(SD_CMD_SET_BLOCKLEN, block_size, SD_RESP_SHORT); // CMD16
 	return GetR1Resp(SD_CMD_SET_BLOCKLEN);
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//***********************************  INIT  *****************************************************************************************
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 SD::SDResult SD::SD_Init(void) {
 	volatile uint32_t wait;
@@ -211,7 +233,7 @@ SD::SDResult SD::SD_Init(void) {
 	SDCard = (SDCard_TypeDef){0};
 	SDCard.Type = SDCT_UNKNOWN;
 	// Enable the SDIO clock
-	SDMMC1->POWER = SDMMC_POWER_PWRCTRL; // power on
+	SDMMC2->POWER = SDMMC_POWER_PWRCTRL; // power on
 	// CMD0
 	wait = SD_CMD_TIMEOUT;
 	Cmd(SD_CMD_GO_IDLE_STATE, 0x00, SD_RESP_NONE);
@@ -260,7 +282,7 @@ SD::SDResult SD::SD_Init(void) {
 			return SDR_InvalidVoltage;
 		}
 		// This is SDHC/SDXC card?
-		SDCard.Type = (SDMMC1->RESP1 & SD_HIGH_CAPACITY) ? SDCT_SDHC : SDCT_SDSC_V2;
+		SDCard.Type = (SDMMC2->RESP1 & SD_HIGH_CAPACITY) ? SDCT_SDHC : SDCT_SDSC_V2;
 	} else if (cmd_res == SDR_Timeout) {
 		// SD v1.x or MMC
 		// Issue CMD55 to reset 'Illegal command' bit of the SD card
@@ -285,7 +307,7 @@ SD::SDResult SD::SD_Init(void) {
 			if (cmd_res != SDR_Success) {
 				return cmd_res;
 			}
-			if (SDMMC1->RESP1 & (1 << 31)) {
+			if (SDMMC2->RESP1 & (1 << 31)) {
 				// The SD card has finished the power-up sequence
 				break;
 			}
@@ -310,7 +332,7 @@ SD::SDResult SD::SD_Init(void) {
 				if (cmd_res != SDR_Success) {
 					return cmd_res;
 				}
-				if (SDMMC1->RESP1 & (1 << 31)) {
+				if (SDMMC2->RESP1 & (1 << 31)) {
 					// The SD card has finished the power-up sequence
 					break;
 				}
@@ -357,11 +379,13 @@ SD::SDResult SD::SD_Init(void) {
 	if (cmd_res != SDR_Success) {
 		return cmd_res;
 	}
-    //-------------------------------------------------------------------------------------------------------------------------------
+	//------------------------------------------------------------------------------------------------------------------------------
+	//------------------------------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------------------------------------------------
 	// Parse the values of CID and CSD registers
 	GetCardInfo();
 	// Now card must be in stand-by mode, from this point it is possible to increase bus speed
-	SetBusClock(0); // here sets SDMMC2 prescaler
+	SetBusClock(7); // here sets SDMMC2 prescaler  360/7=48 MHz  (36MHz)
     //---------------------------------------------------------------------------------------------------------------------------------
 	// Put the SD card to the transfer mode
 	Cmd(SD_CMD_SEL_DESEL_CARD, SDCard.RCA << 16, SD_RESP_SHORT); // CMD7
@@ -432,7 +456,7 @@ void SD::SetBusClock(uint32_t clk_div) {
 	uint32_t clk;
 	clk  = SDMMC2->CLKCR;
 	clk &= ~SDMMC_CLKCR_CLKDIV;
-	clk |= (clk_div & SDMMC_CLKCR_CLKDIV);
+	clk |= (clk_div & SDMMC_CLKCR_CLKDIV); // new value
 	SDMMC2->CLKCR = clk;
 }
 
@@ -516,7 +540,7 @@ SD::SDResult SD::CmdSwitch(uint32_t argument, uint8_t *resp) {
 	// Data length in bytes
 	SDMMC2->DLEN = 64;
 	// Data transfer:
-	//   transfer mode: block   direction: to card   DMA: enabled   block size: 2^6 = 64 bytes   DPSM: enabled
+	//   transfer mode: block   direction: to host   block size: 2^6 = 64 bytes   
 	SDMMC2->DCTRL = SDMMC_DCTRL_DTDIR | (6 << 4) | SDMMC_DCTRL_DTEN;
 	// Send SWITCH_FUNCTION command
 	// Argument:
@@ -533,7 +557,9 @@ SD::SDResult SD::CmdSwitch(uint32_t argument, uint8_t *resp) {
 		return res;
 	}
 	// Read the CCCR register value
-	while (!(SDMMC2->STA & (SDMMC_STA_RXOVERR | SDMMC_STA_DCRCFAIL | SDMMC_STA_DTIMEOUT | SDMMC_STA_DBCKEND))) {
+	volatile uint32_t timeout = 0xFFFF;
+	uint8_t counter =0;
+	while ((!(SDMMC2->STA & (SDMMC_STA_RXOVERR | SDMMC_STA_DCRCFAIL | SDMMC_STA_DTIMEOUT | SDMMC_STA_DBCKEND | SDMMC_STA_DATAEND)))) {
 		// The receive FIFO is half full, there are at least 8 words in it
 		if (SDMMC2->STA & SDMMC_STA_RXFIFOHF) {
 			*ptr++ = SDMMC2->FIFO;
@@ -544,7 +570,10 @@ SD::SDResult SD::CmdSwitch(uint32_t argument, uint8_t *resp) {
 			*ptr++ = SDMMC2->FIFO;
 			*ptr++ = SDMMC2->FIFO;
 			*ptr++ = SDMMC2->FIFO; 
-		}
+			counter++;
+		}		
+		if(timeout == 0) {break;} timeout--;
+		
 	}
 	// Check for errors
 	if (SDMMC2->STA & SDIO_XFER_ERROR_FLAGS) {
@@ -553,8 +582,12 @@ SD::SDResult SD::CmdSwitch(uint32_t argument, uint8_t *resp) {
 		if (SDMMC2->STA & SDMMC_STA_RXOVERR)  { res = SDR_RXOverrun;     }
 	}
 	// Read the data remnant from the SDIO FIFO (should not be, but just in case)
-	while (SDMMC2->STA & SDMMC_STA_RXFIFOF) {
-		*ptr++ = SDMMC2->FIFO;
+	timeout=0xFFFF;
+	while ((!(SDMMC2->STA & (SDMMC_STA_RXOVERR | SDMMC_STA_DCRCFAIL | SDMMC_STA_DATAEND)))) {
+		if(!(SDMMC2->STA & (SDMMC_STA_RXFIFOE))) {
+			*ptr++ = SDMMC2->FIFO;			
+		}		
+		if(timeout == 0) {break;} timeout--;
 	}
 	// Clear the static SDIO flags
 	SDMMC2->ICR = SDIO_ICR_STATIC;
@@ -632,7 +665,7 @@ SD::SDResult SD::GetCardState(uint8_t *pState) {
 
 SD::SDResult SD::ReadBlock(uint32_t addr, uint32_t *pBuf, uint32_t length) {
 	SDResult cmd_res = SDR_Success;
-	uint32_t blk_count = length >> 9; // Sectors in block
+	uint32_t blk_count = length >> 9; // Sectors in block  (/512)
 	register uint32_t STA; // to speed up SDIO flags checking
 	register uint32_t STA_mask; // mask for SDIO flags checking
 	// Initialize the data control register
@@ -670,6 +703,7 @@ SD::SDResult SD::ReadBlock(uint32_t addr, uint32_t *pBuf, uint32_t length) {
 	SDMMC2->DCTRL  = SDMMC_DCTRL_DTDIR | (9 << 4) | SDMMC_DCTRL_DTEN;
 	// Receive a data block from the SDIO
 	// ----> TIME CRITICAL SECTION BEGIN <----
+	uint32_t timeout = 0xFFFF;
 	do {
 		STA = SDMMC2->STA;
 		if (STA & SDMMC_STA_RXFIFOHF) {
@@ -682,7 +716,10 @@ SD::SDResult SD::ReadBlock(uint32_t addr, uint32_t *pBuf, uint32_t length) {
 			*pBuf++ = SDMMC2->FIFO;
 			*pBuf++ = SDMMC2->FIFO;
 			*pBuf++ = SDMMC2->FIFO;
+			timeout = 0xFFFF;
 		}
+		if(!timeout){break;}
+		timeout--;
 	} while (!(STA & STA_mask));
 	// <---- TIME CRITICAL SECTION END ---->
 
@@ -699,9 +736,14 @@ SD::SDResult SD::ReadBlock(uint32_t addr, uint32_t *pBuf, uint32_t length) {
 	}
 
 	// Read the data remnant from RX FIFO (if there is still any data)
-	while (SDMMC2->STA & SDMMC_STA_RXFIFOF) {
-		*pBuf++ = SDMMC2->FIFO;
+	timeout = 0xFFF;
+	while(!((SDMMC2->STA) & (SDMMC_STA_DATAEND | SDMMC_STA_DBCKEND))) {
+		if (!(SDMMC2->STA & SDMMC_STA_RXFIFOE)) {
+			*pBuf++ = SDMMC2->FIFO;		
+		}
+		if(!timeout){break; timeout--;}
 	}
+	
 	// Clear the static SDIO flags
 	SDMMC2->ICR = SDIO_ICR_STATIC;
 	return cmd_res;
@@ -817,23 +859,28 @@ SD::SDResult SD::WriteBlock(uint32_t addr, uint32_t *pBuf, uint32_t length) {
 	SDMMC2->ICR = SDIO_ICR_STATIC;
 	return cmd_res;
 }
-
+//[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+//[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[  INIT  ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
 void SD::init() {
     gpio_init();
     sdmmc_init();
-    SD_Init();
+    SD_Init();	
+	SetBusWidth(SD_BUS_4BIT);
+	HighSpeed();
 }
 
 void SD::sdmmc_init() {
     RCC->AHB2ENR |= RCC_AHB2ENR_SDMMC2EN;
+	RCC->D1CCIPR &=~ RCC_D1CCIPR_SDMMCSEL; // 0: q pll_1   1: r pll_2
     // Reset the SDIO peripheral
-	RCC->AHB2ENR |=  RCC_AHB2RSTR_SDMMC2RST;
-	RCC->AHB2ENR &=~ RCC_AHB2RSTR_SDMMC2RST;
+	RCC->AHB2RSTR |=  RCC_AHB2RSTR_SDMMC2RST;
+	RCC->AHB2RSTR &=~ RCC_AHB2RSTR_SDMMC2RST;
 
     SDMMC2->CLKCR &=~ SDMMC_CLKCR_WIDBUS; // only D0 when initialization
     //SDMMC2->CLKCR |= SDMMC_CLKCR_WIDBUS_0;
     //SDMMC2->CLKCR &=~ SDMMC_CLKCR_WIDBUS_1; // 0:1 - 4-bit wide data bus mode
     SDMMC2->CLKCR |= 1000;    // prescaler on  (360/1000 = 360 kHz)  
+	SDMMC2->DCTRL |= SDMMC_DCTRL_SDIOEN;
 }
 
 void SD::gpio_init() {
@@ -844,7 +891,7 @@ void SD::gpio_init() {
     RCC->AHB4ENR |= RCC_AHB4ENR_GPIOBEN;
     RCC->AHB4ENR |= RCC_AHB4ENR_GPIODEN;
     GPIOB->MODER |= (GPIO_MODER_MODE3_1 | GPIO_MODER_MODE4_1 | GPIO_MODER_MODE14_1 | GPIO_MODER_MODE15_1);
-    GPIOB->MODER |= (GPIO_MODER_MODE3_0 | GPIO_MODER_MODE4_0 | GPIO_MODER_MODE14_0 | GPIO_MODER_MODE15_0);
+    GPIOB->MODER &=~ (GPIO_MODER_MODE3_0 | GPIO_MODER_MODE4_0 | GPIO_MODER_MODE14_0 | GPIO_MODER_MODE15_0);
     GPIOB->PUPDR |= (GPIO_PUPDR_PUPD3_0 | GPIO_PUPDR_PUPD4_0 | GPIO_PUPDR_PUPD14_0 | GPIO_PUPDR_PUPD15_0);
     GPIOB->PUPDR &=~ (GPIO_PUPDR_PUPD3_1 | GPIO_PUPDR_PUPD4_1 | GPIO_PUPDR_PUPD14_1 | GPIO_PUPDR_PUPD15_1);
     GPIOB->OSPEEDR |= (GPIO_OSPEEDR_OSPEED3 | GPIO_OSPEEDR_OSPEED4 | GPIO_OSPEEDR_OSPEED14 | GPIO_OSPEEDR_OSPEED15);

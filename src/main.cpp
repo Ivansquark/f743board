@@ -15,13 +15,13 @@ extern "C" void _exit(int i) {
 int main()
 {	
 	Rtc rtc;
-	RCC_INIT rcc(400);  //HSI = 64 MHz 480 from HSI
-	Encoder enc;
+	RCC_INIT rcc(400);  // realy 360 MHz
+	
 	Buzzer buzz;
 	Independed_WatchDog watchDog(0x4FF);
 	GP_Timers tim2(2,GP_Timers::Period::ms);
 	GP_Timers tim3_watchDog(3,GP_Timers::Period::ms);
-	GP_Timers tim4_encoders(4,GP_Timers::Period::us);
+	GP_Timers tim4_encoders(4,GP_Timers::Period::us); //encoders timer 100 us
 	
 	//ParDac dac;
 	__enable_irq();
@@ -30,17 +30,34 @@ int main()
 	//__asm volatile ("cpsid i"); //turn off interrupts		
 	//GP_Timers::pThis[0]->counter=0;
 	uint32_t x = 0;
-	//LCD_par lcd;
+	srand ( x );
 	fig.drawRect(0,0,800,480,fig.CYAN);	
-  	srand ( x );
+  	
 	
 	fig.drawFatCircle(400,240,150,50,fig.YELLOW);
 	Font_28x30_D font_28x30(fig.CYAN,fig.BLACK);
 	font_28x30.drawString(100,0,"1234567890");
-
 	Font_28x30_D font1_28x30(fig.YELLOW,fig.BLUE);
 	font1_28x30.setColors(fig.CYAN, fig.BRIGHT_RED);
-	//font1_28x30.drawString(100,440,"1234567890");
+	
+	SD sd;
+	Encoder enc;
+	font1_28x30.drawIntValue(0,00,font1_28x30.intToChar(sd.SDCard.Type),1);
+	font1_28x30.drawIntValue(0,35,font1_28x30.intToChar(sd.SDCard.Capacity),1);
+	font1_28x30.drawIntValue(0,70,font1_28x30.intToChar(sd.SDCard.SCR[0]),1);
+	font1_28x30.drawIntValue(0,105,font1_28x30.intToChar(sd.SDCard.SCR[1]),1);
+	font1_28x30.drawIntValue(0,140,font1_28x30.intToChar(sd.SDCard.SCR[2]),1);
+	font1_28x30.drawIntValue(0,175,font1_28x30.intToChar(sd.SDCard.SCR[3]),1);
+	font1_28x30.drawIntValue(0,210,font1_28x30.intToChar(sd.SDCard.SCR[4]),1);
+	font1_28x30.drawIntValue(0,245,font1_28x30.intToChar(sd.SDCard.SCR[5]),1);
+	font1_28x30.drawIntValue(0,280,font1_28x30.intToChar(sd.SDCard.SCR[6]),1);
+	font1_28x30.drawIntValue(0,315,font1_28x30.intToChar(sd.SDCard.SCR[7]),1);
+	//font1_28x30.drawIntValue(0,350,font1_28x30.intToChar(sd.SDCard.SCR[1]),1);
+	uint8_t arr[512]={0xFF,0xAA};
+	uint16_t arr1[256]={0x0000};
+	// addr = 512/4=128-address_in_uint32_t    128*100 - address of block number 100
+	//sd.WriteBlock(12800,(uint32_t*)arr,512);    
+	sd.ReadBlock(12800,(uint32_t*)arr1,512);
 	while(1)
 	{	
 		x++;

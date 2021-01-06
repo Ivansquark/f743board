@@ -9,7 +9,7 @@ Encoder::Encoder() {
 }
 
 void Encoder::enc1_counter_change() {
-    enc1_state_new = ((GPIOA->IDR & GPIO_IDR_ID3 >> 3) | (GPIOB->IDR & GPIO_IDR_ID7 >> 6));
+    enc1_state_new = (((GPIOA->IDR & GPIO_IDR_ID3) >> 3) | ((GPIOB->IDR & GPIO_IDR_ID7) >> 6));
     if(enc1_counter == 100) {
         enc1_counter = 99;
     }
