@@ -104,6 +104,7 @@ static SD* pThis;
     SDResult GetCardState(uint8_t *pState);
     SDResult ReadBlock(uint32_t addr, uint32_t *pBuf, uint32_t length);
     SDResult WriteBlock(uint32_t addr, uint32_t *pBuf, uint32_t length);    
+    SDResult EraseBlock(uint32_t addr1, uint32_t addr2);
 
 private:
     void init();
@@ -192,6 +193,12 @@ private:
     static constexpr uint8_t SD_CMD_SET_WRITE_PROT       = 28U; // Not supported in SPI mode
     static constexpr uint8_t SD_CMD_CLR_WRITE_PROT       = 29U; // Not supported in SPI mode
     static constexpr uint8_t SD_CMD_SEND_WRITE_PROT      = 30U; // Not supported in SPI mode
+    static constexpr uint8_t SD_CMD_SD_ERASE_GRP_START   = 32U; // To set the address of the first write block to be erased. 
+    static constexpr uint8_t SD_CMD_SD_ERASE_GRP_END     = 33U; //set the address of the last write block of the continuous range to be erased
+    static constexpr uint8_t SD_CMD_UNTAG_SECTOR         = 34U;
+    //static constexpr uint8_t SD_CMD_ERASE_GRP_START      = 35U; // for MMC
+    //static constexpr uint8_t SD_CMD_ERASE_GRP_END        = 36U; // for MMC
+    static constexpr uint8_t SD_CMD_UNTAG_ERASE_GROUP    = 37U;    
     static constexpr uint8_t SD_CMD_ERASE                = 38U;
     static constexpr uint8_t SD_CMD_LOCK_UNLOCK          = 42U;
     static constexpr uint8_t SD_CMD_APP_CMD              = 55U; // 

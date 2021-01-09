@@ -7,6 +7,9 @@
             "includePath": 
             [
                 "${workspaceRoot}/inc/",
+                "${workspaceRoot}/hal/inc/",
+                "${workspaceRoot}/hal/inc/Legacy/",
+                "${workspaceRoot}/usb/inc/",
                 "${workspaceRoot}/lib/"                    
             ],
             "defines":

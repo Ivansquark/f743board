@@ -464,7 +464,7 @@ void SD::GetCardInfo(void) {
 	uint32_t dev_size;
 	uint32_t dev_size_mul;
 	// Parse the CSD register
-	SDCard.CSDVer = SDCard.CSD[0] >> 6; // CSD version
+	SDCard.CSDVer = SDCard.CSD[0] >> 6; // CSD version (0-SD 1-SDHC)
 	if (SDCard.Type != SDCT_MMC) {
 		// SD
 		SDCard.MaxBusClkFreq = SDCard.CSD[3];
@@ -484,10 +484,10 @@ void SD::GetCardInfo(void) {
 			dev_size |=  SDCard.CSD[8] << 8;
 			dev_size |=  SDCard.CSD[9]; // C_SIZE
 			SDCard.BlockSize = 512;
-			SDCard.BlockCount = dev_size + 1;
+			SDCard.BlockCount = (dev_size + 1)*1024;
 			// BlockCount >= 65535 means that this is SDXC card
 		}
-		SDCard.Capacity = SDCard.BlockCount * SDCard.BlockSize;
+		SDCard.Capacity = (SDCard.BlockCount/(1024*1024)) * (SDCard.BlockSize);
 	} else {
 		// MMC
 		SDCard.MaxBusClkFreq = SDCard.CSD[3];
@@ -673,9 +673,9 @@ SD::SDResult SD::ReadBlock(uint32_t addr, uint32_t *pBuf, uint32_t length) {
 	// SDSC card uses byte unit address and
 	// SDHC/SDXC cards use block unit address (1 unit = 512 bytes)
 	// For SDHC card addr must be converted to block unit address
-	if (SDCard.Type == SDCT_SDHC) {
-		addr >>= 9;
-	}
+	//if (SDCard.Type == SDCT_SDHC) {
+	//	addr >>= 9;
+	//}
 	// Clear the static SDIO flags
 	SDMMC2->ICR = SDIO_ICR_STATIC;
 	if (blk_count > 1) {
@@ -761,9 +761,9 @@ SD::SDResult SD::WriteBlock(uint32_t addr, uint32_t *pBuf, uint32_t length) {
 	// SDSC card uses byte unit address and
 	// SDHC/SDXC cards use block unit address (1 unit = 512 bytes)
 	// For SDHC card addr must be converted to block unit address
-	if (SDCard.Type == SDCT_SDHC) {
-		addr >>= 9;
-	}
+	//if (SDCard.Type == SDCT_SDHC) {
+	//	addr >>= 9;
+	//}
 	if (blk_count > 1) {
 		// Prepare bit checking variable for multiple block transfer
 		STA_mask = SDIO_TX_MB_FLAGS;
@@ -859,6 +859,33 @@ SD::SDResult SD::WriteBlock(uint32_t addr, uint32_t *pBuf, uint32_t length) {
 	SDMMC2->ICR = SDIO_ICR_STATIC;
 	return cmd_res;
 }
+
+//------------------------------------------------------------------------------------------------------------------
+//						ERASE
+//------------------------------------------------------------------------------------------------------------------
+SD::SDResult SD::EraseBlock(uint32_t addr1, uint32_t addr2) {
+	SDResult cmd_res = SDR_Success;
+	Cmd(SD_CMD_SD_ERASE_GRP_START, addr1, SD_RESP_SHORT); // CMD38
+	cmd_res = GetR1Resp(SD_CMD_SD_ERASE_GRP_START);
+	if (cmd_res != SDR_Success) {
+		return cmd_res;
+	}
+	Cmd(SD_CMD_SD_ERASE_GRP_END, addr2, SD_RESP_SHORT); // CMD24
+	cmd_res = GetR1Resp(SD_CMD_SD_ERASE_GRP_END);
+	if (cmd_res != SDR_Success) {
+		return cmd_res;
+	}
+	Cmd(SD_CMD_ERASE, 0, SD_RESP_SHORT); // CMD24
+	cmd_res = GetR1Resp(SD_CMD_ERASE);
+	if (cmd_res != SDR_Success) {
+		return cmd_res;
+	}
+	// Clear the static SDIO flags
+	SDMMC2->ICR = SDIO_ICR_STATIC;
+	return cmd_res;
+}
+
+
 //[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
 //[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[  INIT  ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
 void SD::init() {
