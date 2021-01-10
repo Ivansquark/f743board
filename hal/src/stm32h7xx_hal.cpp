@@ -148,7 +148,8 @@ uint32_t common_system_clock;
 
   /* Update the SystemCoreClock global variable */
 #if defined(RCC_D1CFGR_D1CPRE)
-  common_system_clock = HAL_RCC_GetSysClockFreq() >> ((D1CorePrescTable[(RCC->D1CFGR & RCC_D1CFGR_D1CPRE)>> RCC_D1CFGR_D1CPRE_Pos]) & 0x1FU);
+uint32_t clock = HAL_RCC_GetSysClockFreq();
+  common_system_clock = clock >> ((D1CorePrescTable[(RCC->D1CFGR & RCC_D1CFGR_D1CPRE)>> RCC_D1CFGR_D1CPRE_Pos]) & 0x1FU);
 #else
   common_system_clock = HAL_RCC_GetSysClockFreq() >> ((D1CorePrescTable[(RCC->CDCFGR1 & RCC_CDCFGR1_CDCPRE)>> RCC_CDCFGR1_CDCPRE_Pos]) & 0x1FU);
 #endif

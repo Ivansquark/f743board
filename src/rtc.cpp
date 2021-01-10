@@ -1,7 +1,9 @@
 #include "rtc.h"
+Rtc* Rtc::pThis = nullptr;
 
 Rtc::Rtc() {
     init();
+    pThis =this;
 }
 
 void Rtc::setTime(uint8_t hour, uint8_t minute, uint8_t second) {

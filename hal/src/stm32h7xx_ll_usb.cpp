@@ -1308,17 +1308,17 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
   while ((USBx->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL) == 0U);
 
   /* Core Soft Reset */
-  count = 0U;
-  USBx->GRSTCTL |= USB_OTG_GRSTCTL_CSRST;
-
-  do
-  {
-    if (++count > 200000U)
-    {
-      return HAL_TIMEOUT;
-    }
-  }
-  while ((USBx->GRSTCTL & USB_OTG_GRSTCTL_CSRST) == USB_OTG_GRSTCTL_CSRST);
+  //count = 0U;
+  //USBx->GRSTCTL |= USB_OTG_GRSTCTL_CSRST;
+  //
+  //do
+  //{
+  //  if (++count > 200000U)
+  //  {
+  //    return HAL_TIMEOUT;
+  //  }
+  //}
+  //while ((USBx->GRSTCTL & USB_OTG_GRSTCTL_CSRST) == USB_OTG_GRSTCTL_CSRST);
 
   return HAL_OK;
 }

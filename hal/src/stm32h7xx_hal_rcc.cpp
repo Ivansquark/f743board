@@ -1384,8 +1384,11 @@ uint32_t HAL_RCC_GetSysClockFreq(void)
     pllsource = (RCC->PLLCKSELR & RCC_PLLCKSELR_PLLSRC);
     pllm = ((RCC->PLLCKSELR & RCC_PLLCKSELR_DIVM1)>> 4)  ;
     pllfracen = ((RCC-> PLLCFGR & RCC_PLLCFGR_PLL1FRACEN)>>RCC_PLLCFGR_PLL1FRACEN_Pos);
-    fracn1 = (float_t)(uint32_t)(pllfracen* ((RCC->PLL1FRACR & RCC_PLL1FRACR_FRACN1)>> 3));
-
+    {
+    uint32_t pll1Frac = ((RCC->PLL1FRACR & RCC_PLL1FRACR_FRACN1)>> 3);
+    uint32_t pll1FrRes = (uint32_t)pllfracen * pll1Frac;
+    fracn1 = (float)(pll1FrRes);
+    }
     if (pllm != 0U)
     {
       switch (pllsource)

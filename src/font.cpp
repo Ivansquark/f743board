@@ -85,7 +85,7 @@ const uint16_t* Font_28x30_D::byteToChar(char byte) {
 uint32_t Font_28x30_D::char_to_int(char* str,uint8_t size) {
     uint32_t x;
     for(uint8_t i=0;i<size;i++) {
-        uint8_t dec;
+        uint8_t dec=0;
         if (str[i]==48){dec=0;} if (str[i]==49){dec=1;}
         if (str[i]==50){dec=2;} if (str[i]==51){dec=3;}
         if (str[i]==52){dec=4;} if (str[i]==53){dec=5;}

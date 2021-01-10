@@ -5,19 +5,9 @@
 #define __cplusplus 2017
 
 #include "stm32h743xx.h"
-//#include "led.h"
-//#include "usart1.h"
 #include "core_cm7.h"
-//#include "modbus.h"
-//#include "timer3.h"
-//#include "spilcd.h"
-//#include "irq.h"
-//#include "frwrapper.h"
-//#include "frclasses.h"
-//#include "adc.h"
-//#include "button.h"
-#include <stdint.h>
-
+#include "stdint.h"
+#include "stdlib.h"
 //***************************************************
 #include "rcc_init.h"
 #include "encoder.h"
@@ -32,89 +22,86 @@
 #include "sd.h"
 #include "normalqueue.h"
 //*******************************************************
-
-
+#include "usb_device.h"
+//*****************************************************
 #include "main.h"
-//#include "rcc_init.h"
 //void *__dso_handle = nullptr; // dummy "guard" that is used to identify dynamic shared objects during global destruction. (in fini in startup.cpp)
-extern "C" void _exit(int i) {
-    while (1);
-}
-
-#include "stdlib.h"
+extern "C" void _exit(int i) {while (1);}
 #define Pi 3.1415926535F
 
 uint8_t arr1[512]={0};
 uint8_t arr2[512]={0};
 uint8_t arr3[512]={0};
 void Error_Handler(void){}
+
+void SystemClock_Config(void);
+
 int main()
-{
-	
-	Rtc rtc;
-	RCC_INIT rcc(400);  // realy 360 MHz
-	
+{	
+// ----------  FPU initialization -----------------------------------
+	SCB->CPACR |= ((3UL << 20)|(3UL << 22));  /* set CP10 and CP11 Full Access */ //FPU enable
+//--------------------------------------------------------------------
+	//RCC_INIT rcc(400);  // realy 360 MHz	
+	uint32_t x = 0;
+	srand (x);
+//--------------- objects initializations (without irq) ----------------
+	Rtc rtc;		
 	Buzzer buzz;
 	Independed_WatchDog watchDog(0x4FF);
 	GP_Timers tim2(2,GP_Timers::Period::ms);
 	GP_Timers tim3_watchDog(3,GP_Timers::Period::ms);
 	GP_Timers tim4_encoders(4,GP_Timers::Period::us); //encoders timer 100 us
-	
-	//ParDac dac;
+	Encoder enc;
+//------------------------------------------------------------------------
+//--------------- HAL and objects with irq initializations-------------------
 	__enable_irq();
+	HAL_Init();
+	SystemClock_Config();
+	//uint32_t clock = HAL_RCC_GetSysClockFreq();
+	SD sd;
+	MX_USB_DEVICE_Init(); // usb initialization function \TODO: set in method of Usb class
 	Nor_LCD lcd;
-	Figure fig;	
-	//__asm volatile ("cpsid i"); //turn off interrupts		
-	//GP_Timers::pThis[0]->counter=0;
-	uint32_t x = 0;
-	srand ( x );
-	fig.drawRect(0,0,800,480,fig.CYAN);	
-  	
+	Figure fig;
+//-------------------------------------------------------------------------		
+	//__asm volatile ("cpsid i"); //turn off interrupts
 	
+	fig.drawRect(0,0,800,480,fig.CYAN);// background	
 	fig.drawFatCircle(400,240,150,50,fig.YELLOW);
 	Font_28x30_D font_28x30(fig.CYAN,fig.BLACK);
 	font_28x30.drawString(100,0,"1234567890");
 	Font_28x30_D font1_28x30(fig.YELLOW,fig.BLUE);
 	font1_28x30.setColors(fig.CYAN, fig.BRIGHT_RED);
-	
-	SD sd;
-	Encoder enc;
 	font1_28x30.drawIntValue(0,00,font1_28x30.intToChar(sd.SDCard.Type),1);
 	font1_28x30.drawIntValue(0,35,font1_28x30.intToChar(sd.SDCard.Capacity),1);
 	font1_28x30.drawIntValue(0,70,font1_28x30.intToChar(sd.SDCard.BlockCount),1);
 	
-	//font1_28x30.drawIntValue(0,350,font1_28x30.intToChar(sd.SDCard.SCR[1]),1);
-	uint8_t arr[512]={0};
-	for(int i=0; i<512; i++) {
-		arr[i] = i+10;
-	}
-	
+	//uint8_t arr[512]={0};
+	//for(int i=0; i<512; i++) {
+	//	arr[i] = i+10;
+	//}
 	// addr = 512/4=128-address_in_uint32_t    128*100 - address of block number 100
 	//sd.WriteBlock(0,(uint32_t*)arr,512);  
 	//sd.EraseBlock(0,61056);  
-	sd.ReadBlock(0,(uint32_t*)arr1,512);
-	sd.ReadBlock(1,(uint32_t*)arr2,512);
-	sd.ReadBlock(512,(uint32_t*)arr3,512);
+	for(int i=0; i<1; i++) {
+		sd.ReadBlock(i,(uint32_t*)(arr1+i*512),512);
+	}
+	
+	sd.ReadBlock(3,(uint32_t*)arr2,512);
+	sd.ReadBlock(4,(uint32_t*)arr3,512);
 	NormalQueue8 que; //128*8 SIZE queue
 	
 	while(1)
 	{	
-		x++;
-		
-		
+		x++;		
 		font1_28x30.drawIntValue(0,440,font1_28x30.intToChar(x),7);  // counter
-		//
-		//font1_28x30.drawIntValue(300,440,font1_28x30.intToChar(enc.enc1_counter),3);
-		//font1_28x30.drawIntValue(500,440,font1_28x30.intToChar(enc.enc2_counter),3);
-		//font1_28x30.drawIntValue(700,440,font1_28x30.intToChar(enc.enc_counter),3);
+		font1_28x30.drawIntValue(300,440,font1_28x30.intToChar(enc.enc1_counter),3);
+		font1_28x30.drawIntValue(500,440,font1_28x30.intToChar(enc.enc2_counter),3);
+		font1_28x30.drawIntValue(700,440,font1_28x30.intToChar(enc.enc_counter),3);
 		//fig.drawFilledTriangle((rand() % 800),(rand() % 480),
 		//					   (rand() % 800),(rand() % 480),
 		//					   (rand() % 800),(rand() % 480), (uint16_t)(rand() % 0xFFFF));
-		//fig.drawRect((rand() % 800),(rand() % 480),(rand() % 800),(rand() % 480), (rand() % 0xFFFF));
-		
-		
-		//tim2.delay_ms(2500);
-		
+		//fig.drawRect((rand() % 800),(rand() % 480),(rand() % 800),(rand() % 480), (rand() % 0xFFFF));		
+		//tim2.delay_ms(2500);		
 		//lcd.writeData(x++);		
 		if(enc.But_PA3){			
 			if(enc.enc_counter!=0) {
@@ -148,29 +135,110 @@ int main()
 		}
 		//watchDog.refreshCounter(); // resets in counter
 // show time:		
-		//rtc.getTime();
-		//font1_28x30.drawIntValue(500,0,font1_28x30.intToChar(rtc.currentTime.hour/10),1);
-		//font1_28x30.drawIntValue(528,0,font1_28x30.intToChar(rtc.currentTime.hour%10),1);
-		//font1_28x30.drawSymbol(554,0,':');
-		//font1_28x30.drawIntValue(582,0,font1_28x30.intToChar(rtc.currentTime.minute/10),1);
-		//font1_28x30.drawIntValue(610,0,font1_28x30.intToChar(rtc.currentTime.minute%10),1);
-		//font1_28x30.drawSymbol(638,0,':');
-		//font1_28x30.drawIntValue(666,0,font1_28x30.intToChar(rtc.currentTime.second/10),1);
-		//font1_28x30.drawIntValue(694,0,font1_28x30.intToChar(rtc.currentTime.second%10),1);
-		//rtc.getDate();
-		//font1_28x30.drawIntValue(500,40,font1_28x30.intToChar(rtc.currentDate.day/10),1);
-		//font1_28x30.drawIntValue(528,40,font1_28x30.intToChar(rtc.currentDate.day%10),1);
-		//font1_28x30.drawSymbol(554,40,'.');
-		//font1_28x30.drawIntValue(582,40,font1_28x30.intToChar(rtc.currentDate.month/10),1);
-		//font1_28x30.drawIntValue(610,40,font1_28x30.intToChar(rtc.currentDate.month%10),1);
-		//font1_28x30.drawSymbol(638,40,'.');
-		//font1_28x30.drawIntValue(666,40,font1_28x30.intToChar(rtc.currentDate.year/10),1);
-		//font1_28x30.drawIntValue(694,40,font1_28x30.intToChar(rtc.currentDate.year%10),1);
+		rtc.getTime();
+		font1_28x30.drawIntValue(500,0,font1_28x30.intToChar(rtc.currentTime.hour/10),1);
+		font1_28x30.drawIntValue(528,0,font1_28x30.intToChar(rtc.currentTime.hour%10),1);
+		font1_28x30.drawSymbol(554,0,':');
+		font1_28x30.drawIntValue(582,0,font1_28x30.intToChar(rtc.currentTime.minute/10),1);
+		font1_28x30.drawIntValue(610,0,font1_28x30.intToChar(rtc.currentTime.minute%10),1);
+		font1_28x30.drawSymbol(638,0,':');
+		font1_28x30.drawIntValue(666,0,font1_28x30.intToChar(rtc.currentTime.second/10),1);
+		font1_28x30.drawIntValue(694,0,font1_28x30.intToChar(rtc.currentTime.second%10),1);
+		rtc.getDate();
+		font1_28x30.drawIntValue(500,40,font1_28x30.intToChar(rtc.currentDate.day/10),1);
+		font1_28x30.drawIntValue(528,40,font1_28x30.intToChar(rtc.currentDate.day%10),1);
+		font1_28x30.drawSymbol(554,40,'.');
+		font1_28x30.drawIntValue(582,40,font1_28x30.intToChar(rtc.currentDate.month/10),1);
+		font1_28x30.drawIntValue(610,40,font1_28x30.intToChar(rtc.currentDate.month%10),1);
+		font1_28x30.drawSymbol(638,40,'.');
+		font1_28x30.drawIntValue(666,40,font1_28x30.intToChar(rtc.currentDate.year/10),1);
+		font1_28x30.drawIntValue(694,40,font1_28x30.intToChar(rtc.currentDate.year%10),1);
 	}
 	
 
     return 0;
 }
 
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
+  /** Supply configuration update enable
+  */
+  HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
+  /** Macro to configure the PLL clock source
+  */
+  __HAL_RCC_PLL_PLLSOURCE_CONFIG(RCC_PLLSOURCE_HSE);
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.PLL.PLLN = 360;
+  RCC_OscInitStruct.PLL.PLLP = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 2;
+  RCC_OscInitStruct.PLL.PLLR = 2;
+  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_1;
+  RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+  RCC_OscInitStruct.PLL.PLLFRACN = 0;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
+                              |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
+  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SDMMC|RCC_PERIPHCLK_USB;
+  PeriphClkInitStruct.PLL3.PLL3M = 1;
+  PeriphClkInitStruct.PLL3.PLL3N = 48;
+  PeriphClkInitStruct.PLL3.PLL3P = 2;
+  PeriphClkInitStruct.PLL3.PLL3Q = 8;
+  PeriphClkInitStruct.PLL3.PLL3R = 2;
+  PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_3;
+  PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
+  PeriphClkInitStruct.PLL3.PLL3FRACN = 0;
+  PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL;
+  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL3;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  //HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLL1QCLK, RCC_MCODIV_2);
+  /** Enable USB Voltage detector
+  */
+  HAL_PWREx_EnableUSBVoltageDetector();
+}
+
+uint32_t get_fattime (void) {	
+	return	  (Rtc::pThis->currentDate.year << 25)
+			| (Rtc::pThis->currentDate.month << 21)
+			| (Rtc::pThis->currentDate.day << 16)
+			| (Rtc::pThis->currentTime.hour << 11)
+			| (Rtc::pThis->currentTime.minute << 5)
+			| (Rtc::pThis->currentTime.second >> 1);
+}
 

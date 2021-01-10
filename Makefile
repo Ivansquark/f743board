@@ -17,11 +17,13 @@ halBLD = build/hal/
 usbINC = usb/inc/
 usbSRC = usb/src/
 usbBLD = build/usb/
-
+ffsINC = ffs/inc/
+ffsSRC = ffs/src/
+ffsBLD = build/ffs/
 #FRS = freeRTOS/src/
 #FRH = freeRTOS/inc/
 
-CPPFLAGS = -mthumb -mcpu=cortex-m7 -c -g -O0 -Wall \
+CPPFLAGS = -mthumb -mcpu=cortex-m7 -c -g -O2 -Wall \
 	-mfpu=fpv5-d16 -mfloat-abi=hard -fno-exceptions \
 	-fno-math-errno -ffunction-sections -fdata-sections -u_printf_float \
 	-fno-rtti --specs=nosys.specs --specs=nano.specs -fno-common -D"assert_param(x)=" \
@@ -44,7 +46,7 @@ LCPPFLAGS = -mcpu=cortex-m7 -march=armv7e-m -mthumb -g -nostartfiles -lm -lc -ls
 		 #-z muldefs  -u_printf_float 
 
 load: $(BLD)main.bin
-	openocd -f lib/stlink.cppfg -f lib/stm32h7x.cppfg -c "program $(BLD)main.bin verify reset exit 0x08000000"
+	openocd -f lib/stlink.cfg -f lib/stm32h7x.cfg -c "program $(BLD)main.bin verify reset exit 0x08000000"
 	
 all: $(BLD)main.bin $(BLD)main.elf $(BLD)main.lst
 $(BLD)main.bin: $(BLD)main.elf
@@ -55,8 +57,8 @@ $(BLD)main.lst: $(BLD)main.elf
 
 #------------------------------------  LINKER ------------------------------------------------------------------
 
-$(BLD)main.elf: $(BLD)startup.o $(BLD)main.o $(BLD)timer.o $(BLD)encoder.o $(BLD)rcc_init.o $(BLD)normalqueue.o
-$(BLD)main.elf: $(BLD)pardac.o $(BLD)fmc.o $(BLD)font.o $(BLD)F_28x30_Digit.o $(BLD)rtc.o $(BLD)sd.o
+$(BLD)main.elf: $(BLD)startup.o $(BLD)main.o $(BLD)timer.o $(BLD)encoder.o 			$(BLD)rcc_init.o 	$(BLD)normalqueue.o
+$(BLD)main.elf: $(BLD)pardac.o  $(BLD)fmc.o  $(BLD)font.o  $(BLD)F_28x30_Digit.o 	$(BLD)rtc.o 		$(BLD)sd.o
 $(BLD)main.elf: $(BLD)system_stm32h7xx.o
 $(BLD)main.elf: $(halBLD)stm32h7xx_hal.o $(halBLD)stm32h7xx_hal_cortex.o $(halBLD)stm32h7xx_hal_dma.o $(halBLD)stm32h7xx_hal_dma_ex.o
 $(BLD)main.elf: $(halBLD)stm32h7xx_hal_exti.o $(halBLD)stm32h7xx_hal_flash.o $(halBLD)stm32h7xx_hal_flash_ex.o
@@ -68,6 +70,7 @@ $(BLD)main.elf: $(halBLD)stm32h7xx_it.o $(halBLD)stm32h7xx_ll_delayblock.o $(hal
 $(BLD)main.elf: $(usbBLD)usb_device.o $(usbBLD)usbd_conf.o $(usbBLD)usbd_core.o $(usbBLD)usbd_ctlreq.o
 $(BLD)main.elf: $(usbBLD)usbd_desc.o $(usbBLD)usbd_ioreq.o $(usbBLD)usbd_msc.o $(usbBLD)usbd_msc_bot.o
 $(BLD)main.elf: $(usbBLD)usbd_msc_data.o $(usbBLD)usbd_msc_scsi.o $(usbBLD)usbd_storage_if.o
+$(BLD)main.elf: $(ffsBLD)diskio.o 		 $(ffsBLD)ff.o 			  $(ffsBLD)ffsystem.o
 	$(CC) -o $(BLD)main.elf -T$(LIB)stm32h743.ld \
 	$(BLD)startup.o $(BLD)timer.o $(BLD)encoder.o $(BLD)main.o $(BLD)rcc_init.o \
 	$(BLD)pardac.o $(BLD)fmc.o $(BLD)font.o $(BLD)F_28x30_Digit.o $(BLD)rtc.o $(BLD)sd.o \
@@ -83,6 +86,7 @@ $(BLD)main.elf: $(usbBLD)usbd_msc_data.o $(usbBLD)usbd_msc_scsi.o $(usbBLD)usbd_
 	$(usbBLD)usb_device.o 		$(usbBLD)usbd_conf.o 		$(usbBLD)usbd_core.o 	$(usbBLD)usbd_ctlreq.o 	\
 	$(usbBLD)usbd_desc.o 		$(usbBLD)usbd_ioreq.o 		$(usbBLD)usbd_msc.o 	$(usbBLD)usbd_msc_bot.o \
 	$(usbBLD)usbd_msc_data.o 	$(usbBLD)usbd_msc_scsi.o 	$(usbBLD)usbd_storage_if.o 						\
+	$(ffsBLD)diskio.o 			$(ffsBLD)ff.o 				$(ffsBLD)ffsystem.o 							\
 	-I$(LIB) $(LCPPFLAGS)
 
 # malloc.o tasks.o heap_2.o timers.o list.o port.o queue.o \
@@ -143,6 +147,17 @@ $(BLD)sd.o: $(SRC)sd.cpp #$(INC) #$(FRH)
 #	$(CC) $(SRC)scsi.cpp -o $(BLD)scsi.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
 $(BLD)normalqueue.o: $(SRC)normalqueue.cpp #$(INC) #$(FRH)
 	$(CC) $(SRC)normalqueue.cpp -o $(BLD)normalqueue.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
+#_________________________________________________________________________________________________
+#_________________________ FAT_FS Library ver 0.14a ______________________________________________	
+#_________________________________________________________________________________________________
+$(ffsBLD)diskio.o: $(ffsSRC)diskio.cpp 
+	$(CC) $(ffsSRC)diskio.cpp -o $(ffsBLD)diskio.o -I$(INC) -I$(ffsINC) -I$(LIB) -I$(usbINC) -I$(halINC) -I$(FRH) $(CPPFLAGS)
+$(ffsBLD)ff.o: $(ffsSRC)ff.cpp 
+	$(CC) $(ffsSRC)ff.cpp -o $(ffsBLD)ff.o -I$(INC) -I$(ffsINC) -I$(LIB) -I$(usbINC) -I$(halINC) -I$(FRH) $(CPPFLAGS)
+$(ffsBLD)ffsystem.o: $(ffsSRC)ffsystem.cpp 
+	$(CC) $(ffsSRC)ffsystem.cpp -o $(ffsBLD)ffsystem.o -I$(ffsINC) -I$(INC) -I$(LIB) -I$(usbINC) -I$(halINC) -I$(FRH) $(CPPFLAGS)		
+#$(ffsBLD)ffunicode.o: $(ffsSRC)ffunicode.cpp 
+#	$(CC) $(ffsSRC)ffunicode.cpp -o $(ffsBLD)ffunicode.o -I$(INC) -I$(LIB) -I$(usbINC) -I$(halINC) -I$(FRH) $(CPPFLAGS)
 #_________________________________________________________________________________________________
 #_________________________ USB Mass Storage Device LIBRARY _______________________________________	
 #_________________________________________________________________________________________________
@@ -220,7 +235,7 @@ $(halBLD)stm32h7xx_ll_usb.o: $(halSRC)stm32h7xx_ll_usb.cpp #$(INC) #$(FRH)
 #--------------------------------------- MAIN --------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------
 $(BLD)main.o: $(SRC)main.cpp 
-	$(CC) $(SRC)main.cpp -o $(BLD)main.o -I$(halINC) -I$(INC) -I$(LIB) -I$(FRH)  $(CPPFLAGS)
+	$(CC) $(SRC)main.cpp -o $(BLD)main.o -I$(halINC) -I$(INC) -I$(usbINC) -I$(halINC) -I$(LIB) -I$(FRH)  $(CPPFLAGS)
 	
 clean:
 	rm -rf $(BLD)*.o $(BLD)*.elf $(BLD)*.lst $(BLD)*.bin $(BLD)*.map $(BLD)*.hex \

@@ -10,6 +10,7 @@
                 "${workspaceRoot}/hal/inc/",
                 "${workspaceRoot}/hal/inc/Legacy/",
                 "${workspaceRoot}/usb/inc/",
+                "${workspaceRoot}/ffs/inc/",
                 "${workspaceRoot}/lib/"                    
             ],
             "defines":

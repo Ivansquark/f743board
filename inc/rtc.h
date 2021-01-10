@@ -5,6 +5,7 @@
 
 class Rtc {
 public:
+static Rtc* pThis;
     struct Time {
         uint8_t second;
         uint8_t minute;

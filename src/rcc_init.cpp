@@ -61,7 +61,7 @@ void RCC_INIT::rcc_init(uint16_t clock) {
 				RCC -> PLL1DIVR = 0;
 				RCC -> PLL2DIVR = 0;
 				RCC -> PLL3DIVR = 0;
-				RCC -> PLL1DIVR  |= (1<<24)|(1<<16)|(1<<9)|(360<<0);	
+				RCC -> PLL1DIVR  |= (1<<24)|(1<<16)|(1<<9)|(359<<0);	
                 RCC->PLLCFGR = 0;
 				RCC->PLLCFGR |= RCC_PLLCFGR_PLL1RGE_2; //Указание диапазона входной частоты PLL1 /* Select PLL1 input reference frequency range: VCI */
 				RCC->PLLCFGR &=~ RCC_PLLCFGR_PLL1VCOSEL; // Указание диапазона выходной частоты PLL1 /* Select PLL1 output frequency range : VCO */	
