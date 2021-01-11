@@ -25,6 +25,7 @@
 #include "usb_device.h"
 //*****************************************************
 #include "main.h"
+#include "ff.h"
 //void *__dso_handle = nullptr; // dummy "guard" that is used to identify dynamic shared objects during global destruction. (in fini in startup.cpp)
 extern "C" void _exit(int i) {while (1);}
 #define Pi 3.1415926535F
@@ -35,7 +36,7 @@ uint8_t arr3[512]={0};
 void Error_Handler(void){}
 
 void SystemClock_Config(void);
-
+FATFS fs; FRESULT res; FIL test; UINT testBytes;// initialize fatFS
 int main()
 {	
 // ----------  FPU initialization -----------------------------------
@@ -47,7 +48,7 @@ int main()
 //--------------- objects initializations (without irq) ----------------
 	Rtc rtc;		
 	Buzzer buzz;
-	Independed_WatchDog watchDog(0x4FF);
+	//Independed_WatchDog watchDog(0x4FF);
 	GP_Timers tim2(2,GP_Timers::Period::ms);
 	GP_Timers tim3_watchDog(3,GP_Timers::Period::ms);
 	GP_Timers tim4_encoders(4,GP_Timers::Period::us); //encoders timer 100 us
@@ -90,6 +91,23 @@ int main()
 	sd.ReadBlock(4,(uint32_t*)arr3,512);
 	NormalQueue8 que; //128*8 SIZE queue
 	
+	char readFileBuffer[10] = {'0','0','0','0','0','0','0','0','0','0'};
+	res = f_mount(&fs, "",0);
+	if(res == FR_OK) {
+		font1_28x30.drawIntValue(760,440,font1_28x30.intToChar(0),3);
+	}
+	FATFS* fs_ptr = &fs;
+	uint8_t path[] = "1.txt";
+	res = f_open(&test, (char*)path, FA_READ);
+	if(res != FR_OK) { font1_28x30.drawIntValue(760,400,font1_28x30.intToChar(0),3); }
+	res = f_read(&test,(uint8_t*)readFileBuffer,10,&testBytes);
+	if(res == FR_OK) { font1_28x30.drawIntValue(760,400,font1_28x30.intToChar(0),3); }
+	res = f_close(&test);
+	if(res == FR_OK) { font1_28x30.drawIntValue(760,400,font1_28x30.intToChar(0),3); }
+	for(int i = 0; i < 10; i++) {
+		font1_28x30.drawSymbol(0+32*i,320, *((char*)(&readFileBuffer[i])));
+	}
+
 	while(1)
 	{	
 		x++;		
@@ -154,31 +172,19 @@ int main()
 		font1_28x30.drawIntValue(666,40,font1_28x30.intToChar(rtc.currentDate.year/10),1);
 		font1_28x30.drawIntValue(694,40,font1_28x30.intToChar(rtc.currentDate.year%10),1);
 	}
-	
-
     return 0;
 }
 
-void SystemClock_Config(void)
-{
+void SystemClock_Config(void) {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-  /** Supply configuration update enable
-  */
   HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
-  /** Configure the main internal regulator output voltage
-  */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
-  /** Macro to configure the PLL clock source
-  */
   __HAL_RCC_PLL_PLLSOURCE_CONFIG(RCC_PLLSOURCE_HSE);
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -191,12 +197,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_1;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
   RCC_OscInitStruct.PLL.PLLFRACN = 0;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
     Error_Handler();
   }
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
@@ -208,8 +211,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-  {
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
     Error_Handler();
   }
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SDMMC|RCC_PERIPHCLK_USB;
@@ -227,9 +229,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  //HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLL1QCLK, RCC_MCODIV_2);
-  /** Enable USB Voltage detector
-  */
   HAL_PWREx_EnableUSBVoltageDetector();
 }
 

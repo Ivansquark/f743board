@@ -5,7 +5,6 @@
 extern "C" {
 #endif
 
-
 #include "stm32h7xx_hal.h"
 void Error_Handler(void);
 uint32_t get_fattime (void);

@@ -23,7 +23,7 @@ ffsBLD = build/ffs/
 #FRS = freeRTOS/src/
 #FRH = freeRTOS/inc/
 
-CPPFLAGS = -mthumb -mcpu=cortex-m7 -c -g -O2 -Wall \
+CPPFLAGS = -mthumb -mcpu=cortex-m7 -c -g -O0 -Wall \
 	-mfpu=fpv5-d16 -mfloat-abi=hard -fno-exceptions \
 	-fno-math-errno -ffunction-sections -fdata-sections -u_printf_float \
 	-fno-rtti --specs=nosys.specs --specs=nano.specs -fno-common -D"assert_param(x)=" \
@@ -235,7 +235,7 @@ $(halBLD)stm32h7xx_ll_usb.o: $(halSRC)stm32h7xx_ll_usb.cpp #$(INC) #$(FRH)
 #--------------------------------------- MAIN --------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------
 $(BLD)main.o: $(SRC)main.cpp 
-	$(CC) $(SRC)main.cpp -o $(BLD)main.o -I$(halINC) -I$(INC) -I$(usbINC) -I$(halINC) -I$(LIB) -I$(FRH)  $(CPPFLAGS)
+	$(CC) $(SRC)main.cpp -o $(BLD)main.o -I$(halINC) -I$(INC) -I$(usbINC) -I$(halINC) -I$(LIB) -I$(ffsINC) $(CPPFLAGS)
 	
 clean:
 	rm -rf $(BLD)*.o $(BLD)*.elf $(BLD)*.lst $(BLD)*.bin $(BLD)*.map $(BLD)*.hex \
