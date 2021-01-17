@@ -218,7 +218,7 @@ private:
     // SDIO transfer flags
     static constexpr uint32_t SDIO_XFER_COMMON_FLAGS = (SDMMC_STA_DTIMEOUT | SDMMC_STA_DCRCFAIL);
     // SDIO flags for single block receive
-    static constexpr uint32_t SDIO_RX_SB_FLAGS =       (SDIO_XFER_COMMON_FLAGS | SDMMC_STA_DBCKEND | SDMMC_STA_RXOVERR);
+    static constexpr uint32_t SDIO_RX_SB_FLAGS =       (SDIO_XFER_COMMON_FLAGS | SDMMC_STA_DBCKEND | SDMMC_STA_DATAEND | SDMMC_STA_RXOVERR);
     // SDIO flags for multiple block receive
     static constexpr uint32_t SDIO_RX_MB_FLAGS =       (SDIO_XFER_COMMON_FLAGS | SDMMC_STA_DATAEND | SDMMC_STA_RXOVERR);
     // SDIO flags for single block transmit

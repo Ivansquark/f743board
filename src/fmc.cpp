@@ -42,6 +42,38 @@ void Nor_LCD_interface::setRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t 
     writeReg(0x2B03, (y2 & 0x00FF)); //Row set end 0x01E0 (480) two by 8 bits
 }
 
+char* Nor_LCD_interface::intToChar(uint32_t x) {
+    uint32_t y=x;        
+    uint8_t count=0;
+    while (y>0) {
+        y=y/10;  count++; 
+    } // counting numbers of figures
+    y=x;    
+    arrSize=count;
+    if(x==0) {arrSize=1;arr[arrSize-1]='0';arr[arrSize]='\0'; return arr;} 
+    for(uint8_t i=0;i<arrSize;i++) {            
+        int x=y%10;
+        if(x==0) {arr[arrSize-1-i]='0';} if(x==1) {arr[arrSize-1-i]='1';}
+        if(x==2) {arr[arrSize-1-i]='2';} if(x==3) {arr[arrSize-1-i]='3';}
+        if(x==4) {arr[arrSize-1-i]='4';} if(x==5) {arr[arrSize-1-i]='5';}
+        if(x==6) {arr[arrSize-1-i]='6';} if(x==7) {arr[arrSize-1-i]='7';}
+        if(x==8) {arr[arrSize-1-i]='8';} if(x==9) {arr[arrSize-1-i]='9';}
+        y=y/10;        
+    }
+    if(arrSize+1<10) {
+        //strcat(arr+arrSize,'\0'); 
+        arr[arrSize]='\0';
+    }
+    return arr;
+}
+
+char* Nor_LCD_interface::floatTochar(float x) {        
+    sprintf(arrFloat, "%.3f", x);    
+    return arrFloat;       
+}
+
+
+//------------------------------------  LCD -----------------------------------------------
 Nor_LCD* Nor_LCD::pThis = nullptr;
 
 Nor_LCD::Nor_LCD() {    

@@ -101,7 +101,7 @@ DRESULT disk_write (
 {
 	DRESULT res;
 	int result;
-	//result = SD::pThis->WriteBlock(sector,(uint32_t*)buff,count*512);
+	result = SD::pThis->WriteBlock(sector,(uint32_t*)buff,count*512);
 	return RES_OK;
 	//switch (pdrv) {
 	//case DEV_RAM :	//result = RAM_disk_write(buff, sector, count);

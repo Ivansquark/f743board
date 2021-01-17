@@ -699,7 +699,7 @@ SD::SDResult SD::ReadBlock(uint32_t addr, uint32_t *pBuf, uint32_t length) {
 	// Data length
 	SDMMC2->DLEN   = length;
 	// Data transfer:
-	//   transfer mode: block   direction: to card   DMA: disabled   block size: 2^9 = 512 bytes   DPSM: enabled
+	//   transfer mode: block   direction: from card   DMA: disabled   block size: 2^9 = 512 bytes   DPSM: enabled
 	SDMMC2->DCTRL  = SDMMC_DCTRL_DTDIR | (9 << 4) | SDMMC_DCTRL_DTEN;
 	// Receive a data block from the SDIO
 	// ----> TIME CRITICAL SECTION BEGIN <----
@@ -716,7 +716,6 @@ SD::SDResult SD::ReadBlock(uint32_t addr, uint32_t *pBuf, uint32_t length) {
 			*pBuf++ = SDMMC2->FIFO;
 			*pBuf++ = SDMMC2->FIFO;
 			*pBuf++ = SDMMC2->FIFO;
-			timeout = 0xFFFF;
 		}
 		if(!timeout){break;}
 		timeout--;

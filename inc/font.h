@@ -14,13 +14,10 @@ public:
     void drawIntValue(uint16_t x, uint16_t y, char* byte, uint8_t digitsNum);
 
     void setColors(uint16_t back, uint16_t fig);
-
-    char* intToChar(uint32_t x);
-    char* floatTochar(float x);
+    
 private:    
     const uint16_t* byteToChar(char byte); 
-    uint32_t char_to_int(char* str,uint8_t size);
-    
+    uint32_t char_to_int(char* str,uint8_t size);    
     
     static uint16_t color_background_old;
     static uint16_t color_figure_old; 

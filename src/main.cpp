@@ -21,30 +21,41 @@
 #include "rtc.h"
 #include "sd.h"
 #include "normalqueue.h"
+#include "parser.h"
 //*******************************************************
 #include "usb_device.h"
 //*****************************************************
 #include "main.h"
-#include "ff.h"
+//#include "ff.h"
 //void *__dso_handle = nullptr; // dummy "guard" that is used to identify dynamic shared objects during global destruction. (in fini in startup.cpp)
+//_______________  GLOBAL VARIABLES OBJECTS and FUNCTIONS ___________________________________________
 extern "C" void _exit(int i) {while (1);}
 #define Pi 3.1415926535F
-
 uint8_t arr1[512]={0};
 uint8_t arr2[512]={0};
 uint8_t arr3[512]={0};
 void Error_Handler(void){}
-
 void SystemClock_Config(void);
-FATFS fs; FRESULT res; FIL test; UINT testBytes;// initialize fatFS
+//FATFS fs; FRESULT res; FIL test; UINT testBytes;// initialize fatFS
+Parser font24;
+bool is_USB;
+//______________________________________________________________________________________
+
+
 int main()
 {	
+	uint32_t* heapArr = (uint32_t*)malloc(100*sizeof(uint32_t));
+	for(int i = 0; i < 100; i++) {
+		heapArr[i] = 0xFF;
+	}
+
 // ----------  FPU initialization -----------------------------------
 	SCB->CPACR |= ((3UL << 20)|(3UL << 22));  /* set CP10 and CP11 Full Access */ //FPU enable
 //--------------------------------------------------------------------
 	//RCC_INIT rcc(400);  // realy 360 MHz	
 	uint32_t x = 0;
 	srand (x);
+	is_USB = false;
 //--------------- objects initializations (without irq) ----------------
 	Rtc rtc;		
 	Buzzer buzz;
@@ -85,31 +96,47 @@ int main()
 	//sd.EraseBlock(0,61056);  
 	for(int i=0; i<1; i++) {
 		sd.ReadBlock(i,(uint32_t*)(arr1+i*512),512);
-	}
-	
+	}	
 	sd.ReadBlock(3,(uint32_t*)arr2,512);
 	sd.ReadBlock(4,(uint32_t*)arr3,512);
 	NormalQueue8 que; //128*8 SIZE queue
 	
 	char readFileBuffer[10] = {'0','0','0','0','0','0','0','0','0','0'};
-	res = f_mount(&fs, "",0);
-	if(res == FR_OK) {
-		font1_28x30.drawIntValue(760,440,font1_28x30.intToChar(0),3);
-	}
-	FATFS* fs_ptr = &fs;
-	uint8_t path[] = "1.txt";
-	res = f_open(&test, (char*)path, FA_READ);
-	if(res != FR_OK) { font1_28x30.drawIntValue(760,400,font1_28x30.intToChar(0),3); }
-	res = f_read(&test,(uint8_t*)readFileBuffer,10,&testBytes);
-	if(res == FR_OK) { font1_28x30.drawIntValue(760,400,font1_28x30.intToChar(0),3); }
-	res = f_close(&test);
-	if(res == FR_OK) { font1_28x30.drawIntValue(760,400,font1_28x30.intToChar(0),3); }
-	for(int i = 0; i < 10; i++) {
-		font1_28x30.drawSymbol(0+32*i,320, *((char*)(&readFileBuffer[i])));
-	}
+	//res = f_mount(&fs, "",0);
+	//if(res == FR_OK) {
+	//	font1_28x30.drawIntValue(760,440,font1_28x30.intToChar(0),3);
+	//}
+	//FATFS* fs_ptr = &fs;
+	//uint8_t path[] = "1.txt";
+	//res = f_open(&test, (char*)path, FA_READ);
+	//if(res != FR_OK) { font1_28x30.drawIntValue(760,400,font1_28x30.intToChar(0),3); }
+	//res = f_read(&test,(uint8_t*)readFileBuffer,10,&testBytes);
+	//if(res != FR_OK) { font1_28x30.drawIntValue(760,400,font1_28x30.intToChar(0),3); }
+	//res = f_close(&test);
+	//if(res != FR_OK) { font1_28x30.drawIntValue(760,400,font1_28x30.intToChar(0),3); }
+	//for(int i = 0; i < 10; i++) {
+	//	font1_28x30.drawSymbol(0+32*i,320, *((char*)(&readFileBuffer[i])));
+	//}
+	//res = f_open(&test,(char*)"2.txt", FA_WRITE | FA_CREATE_ALWAYS);
+	//uint8_t num[] = "1111122222";
+	//res = f_write(&test,num,10,&testBytes);
+	//if(res != FR_OK) { font1_28x30.drawIntValue(760,360,font1_28x30.intToChar(9),3); }	
+	//res = f_close(&test);
 
+	font24.fat_init();
+	font24.setColors(fig.CYAN,fig.BLACK);
+	font24.drawString(0,240,"—ъешь ещЄ этих французских");
+	font24.drawString(0,264,"булок и выпей чаю");
+	font24.setColors(fig.CYAN,fig.BLACK);
+	font24.drawSymbol(770,0,0x7f);
+	uint32_t z = 0;
 	while(1)
 	{	
+		if(is_USB){
+			font24.drawSymbol(770,0,0x8f); // Bat symbol charge
+		} else {
+			font24.drawSymbol(770,0,0x7f); //Bat symbol low
+		}
 		x++;		
 		font1_28x30.drawIntValue(0,440,font1_28x30.intToChar(x),7);  // counter
 		font1_28x30.drawIntValue(300,440,font1_28x30.intToChar(enc.enc1_counter),3);

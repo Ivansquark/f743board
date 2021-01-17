@@ -3,7 +3,7 @@
 
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0x2000;      /* required amount of heap  */
-_Min_Stack_Size = 0x2000; /* required amount of stack */
+_Min_Stack_Size = 0x8000; /* required amount of stack */
 
 
 /* Memories definition */
@@ -57,7 +57,7 @@ SECTIONS
 		KEEP(*(.fini_array))
 		PROVIDE_HIDDEN (__fini_array_end = .);
 		. = ALIGN(4);
-    } >ROM
+  } >ROM
 
   /* Constant data into ROM memory*/
   .rodata :
@@ -87,7 +87,7 @@ SECTIONS
 		_stack_begin = .;
 		_StackLimit = _stack_begin + _Min_Stack_Size; /*for syscall*/  
 		. = . + _Min_Stack_Size;
-    _StackTop = .;
+    _StackTop = .;  /*start of RAM + stack size*/
     PROVIDE(_estack = _StackTop);/*значение _estack устанавливаем в _StackTop*/ /*_stack в начало вектора*/
 	}>DTCMRAM	  
       
@@ -115,16 +115,17 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss; /* standard newlib definition */
-  } >DTCMRAM
+  } >RAM_D1
 
   .heap :
 	{
     . = ALIGN(4);
-    _heap_start = __bss_end__;  
+    _heap_start = __bss_end__;
+    /*_heap_start = .;*/  
     /*PROVIDE(current_ends = 0);*/
     PROVIDE( end = . );                /*_sbrk uses end for malloc*/
 		_heap_limit = _heap_start + _Min_Heap_Size;      
 		. = . + _Min_Heap_Size;
     PROVIDE( _heap_end = . );    
-	}>DTCMRAM 
+	}>RAM_D1 
 }

@@ -3,6 +3,7 @@
 
 #include "stm32h743xx.h"
 #include "timer.h"
+#include "stdio.h"
 #include "math.h"
 
 struct LCD_TypeDef {        
@@ -19,10 +20,17 @@ public:
     void writeData(uint16_t data);
     void writeCmd(uint16_t cmd);
     void writeReg(const uint16_t LCD_REG, const uint16_t cmd);
+    char* intToChar(uint32_t x);
+    char* floatTochar(float x);
 protected:
     void setColumn(uint16_t x);
     void setRow(uint16_t y);
     void setRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
+
+    
+    char arr[20]{0};
+    char arrFloat[20]{0};
+    uint8_t arrSize=0;
 private:
     inline void delay(uint32_t val) {
         while(val--){__ASM("nop");}
