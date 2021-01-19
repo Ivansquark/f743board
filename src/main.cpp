@@ -43,11 +43,14 @@ bool is_USB;
 
 
 int main()
-{	
-	uint32_t* heapArr = (uint32_t*)malloc(100*sizeof(uint32_t));
-	for(int i = 0; i < 100; i++) {
-		heapArr[i] = 0xFF;
-	}
+{
+//_______________ MALLOC SECTION______________________________________		
+	RCC->AHB2ENR |= RCC_AHB2ENR_SRAM1EN; // enable clocks at ram_D2
+	uint8_t* heapArr1 = (uint8_t*)malloc(5*sizeof(uint8_t));
+	for(int i = 0; i < 5; i++) {
+		heapArr1[i] = 0x11;
+	}	
+//____________________________________________________________________
 
 // ----------  FPU initialization -----------------------------------
 	SCB->CPACR |= ((3UL << 20)|(3UL << 22));  /* set CP10 and CP11 Full Access */ //FPU enable

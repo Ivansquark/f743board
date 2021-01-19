@@ -120,12 +120,12 @@ SECTIONS
   .heap :
 	{
     . = ALIGN(4);
-    _heap_start = __bss_end__;
-    /*_heap_start = .;*/  
+    /*_heap_start = __bss_end__;*/
+    _heap_start = .;  
     /*PROVIDE(current_ends = 0);*/
     PROVIDE( end = . );                /*_sbrk uses end for malloc*/
 		_heap_limit = _heap_start + _Min_Heap_Size;      
 		. = . + _Min_Heap_Size;
     PROVIDE( _heap_end = . );    
-	}>RAM_D1 
+	}>RAM_D2 
 }
