@@ -62,7 +62,7 @@ $(BLD)main.lst: $(BLD)main.elf
 
 $(BLD)main.elf: $(BLD)startup.o $(BLD)main.o $(BLD)timer.o $(BLD)encoder.o 			$(BLD)rcc_init.o 	$(BLD)normalqueue.o
 $(BLD)main.elf: $(BLD)pardac.o  $(BLD)fmc.o  $(BLD)font.o  $(BLD)F_28x30_Digit.o 	$(BLD)rtc.o 		$(BLD)sd.o
-$(BLD)main.elf: $(BLD)system_stm32h7xx.o $(BLD)parser.o $(BLD)malloc.o
+$(BLD)main.elf: $(BLD)system_stm32h7xx.o $(BLD)parser.o $(BLD)hrtim.o $(BLD)malloc.o
 $(BLD)main.elf: $(halBLD)stm32h7xx_hal.o $(halBLD)stm32h7xx_hal_cortex.o $(halBLD)stm32h7xx_hal_dma.o $(halBLD)stm32h7xx_hal_dma_ex.o
 $(BLD)main.elf: $(halBLD)stm32h7xx_hal_exti.o $(halBLD)stm32h7xx_hal_flash.o $(halBLD)stm32h7xx_hal_flash_ex.o
 $(BLD)main.elf: $(halBLD)stm32h7xx_hal_gpio.o $(halBLD)stm32h7xx_hal_hsem.o $(halBLD)stm32h7xx_hal_mdma.o
@@ -77,7 +77,7 @@ $(BLD)main.elf: $(ffsBLD)diskio.o 		 $(ffsBLD)ff.o 			  $(ffsBLD)ffsystem.o
 	$(CC) -o $(BLD)main.elf -T$(LIB)stm32h743.ld \
 	$(BLD)startup.o $(BLD)timer.o $(BLD)encoder.o $(BLD)main.o $(BLD)rcc_init.o \
 	$(BLD)pardac.o $(BLD)fmc.o $(BLD)font.o $(BLD)F_28x30_Digit.o $(BLD)rtc.o $(BLD)sd.o \
-	$(BLD)normalqueue.o $(BLD)parser.o $(BLD)malloc.o \
+	$(BLD)normalqueue.o $(BLD)parser.o $(BLD)hrtim.o $(BLD)malloc.o \
 	$(BLD)system_stm32h7xx.o \
 	$(halBLD)stm32h7xx_hal.o $(halBLD)stm32h7xx_hal_cortex.o $(halBLD)stm32h7xx_hal_dma.o $(halBLD)stm32h7xx_hal_dma_ex.o \
 	$(halBLD)stm32h7xx_hal_exti.o   $(halBLD)stm32h7xx_hal_flash.o  	$(halBLD)stm32h7xx_hal_flash_ex.o 	\
@@ -151,7 +151,9 @@ $(BLD)sd.o: $(SRC)sd.cpp #$(INC) #$(FRH)
 $(BLD)normalqueue.o: $(SRC)normalqueue.cpp #$(INC) #$(FRH)
 	$(CC) $(SRC)normalqueue.cpp -o $(BLD)normalqueue.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
 $(BLD)parser.o: $(SRC)parser.cpp #$(INC) #$(FRH)
-	$(CC) $(SRC)parser.cpp -o $(BLD)parser.o -I$(INC) -I$(ffsINC) -I$(LIB) -I$(FRH) $(CPPFLAGS)	
+	$(CC) $(SRC)parser.cpp -o $(BLD)parser.o -I$(INC) -I$(ffsINC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
+$(BLD)hrtim.o: $(SRC)hrtim.cpp
+	$(CC) $(SRC)hrtim.cpp -o $(BLD)hrtim.o -I$(INC) -I$(ffsINC) -I$(LIB) -I$(FRH) $(CPPFLAGS)		
 #_________________________________________________________________________________________________
 #_________________________ FAT_FS Library ver 0.14a ______________________________________________	
 #_________________________________________________________________________________________________
